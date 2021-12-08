@@ -13,13 +13,13 @@ services:
     environment:
       # ⚠️ Required:
       # Change this to your host's public address
-      - WG_HOST= jp.fukuro.ml
+      - WG_HOST=[your IP]
 
       # Optional:
-      - PASSWORD=tamthao66
+      - PASSWORD=[your password]
       - WG_PORT=51820
       - WG_DEFAULT_ADDRESS=10.6.0.x
-      - WG_DEFAULT_DNS=10.2.0.10
+      - WG_DEFAULT_DNS=10.2.0.10 # Points to adguardhome
       # - WG_ALLOWED_IPS=192.168.15.0/24, 10.0.1.0/24
     image: weejewel/wg-easy
     container_name: wg-easy
