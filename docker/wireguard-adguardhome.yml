@@ -8,15 +8,43 @@ networks:
         - subnet: 10.2.0.0/24
 
 services:
+  unbound:
+    image: mvance/unbound-rpi
+    container_name: unbound
+    restart: unless-stopped
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+
+  
+  adguardhome:
+    depends_on: [unbound]
+    image: adguard/adguardhome
+    container_name: adguardhome
+    ports:
+      - 53:53/tcp
+      - 53:53/udp
+      - 853:853/tcp
+      - 3000:3000/tcp
+      - 80:80/tcp
+      - 443:443/tcp
+    volumes:
+      - "/home/ubuntu/docker/AdGuard/work:/opt/adguardhome/work"
+      - "/home/ubuntu/docker/AdGuard/conf:/opt/adguardhome/conf"
+    restart: unless-stopped
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.10
+  
   wg-easy:
     depends_on: [adguardhome]
     environment:
       # ⚠️ Required:
       # Change this to your host's public address
-      - WG_HOST=[your IP]
+      - WG_HOST=[yourIP]
 
       # Optional:
-      - PASSWORD=[your password]
+      - PASSWORD=[yourpassword]
       - WG_PORT=51820
       - WG_DEFAULT_ADDRESS=10.6.0.x
       - WG_DEFAULT_DNS=10.2.0.10 # Points to adguardhome
@@ -39,22 +67,4 @@ services:
       - 10.2.0.10 # Points to adguardhome
     networks:
       private_network:
-        ipv4_address: 10.2.0.5
-
-  adguardhome:
-    image: adguard/adguardhome
-    container_name: adguardhome
-    ports:
-      - 53:53/tcp
-      - 53:53/udp
-      - 853:853/tcp
-      - 3000:3000/tcp
-      - 80:80/tcp
-      - 443:443/tcp
-    volumes:
-      - "/home/ubuntu/docker/AdGuard/work:/opt/adguardhome/work"
-      - "/home/ubuntu/docker/AdGuard/conf:/opt/adguardhome/conf"
-    restart: unless-stopped
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.10
+        ipv4_address: 10.2.0.15
