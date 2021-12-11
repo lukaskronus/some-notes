@@ -12,6 +12,12 @@ services:
     image: mvance/unbound-rpi
     container_name: unbound
     restart: unless-stopped
+    # Use ports if needed
+    # ports:
+      # - 10.0.0.214:5335:5335/tcp
+      # - 10.0.0.214:5335:5335/udp
+    volumes:
+      - "/home/ubuntu/docker/unbound:/etc/unbound/unbound.conf.d"
     networks:
       private_network:
         ipv4_address: 10.2.0.5
@@ -22,12 +28,13 @@ services:
     image: adguard/adguardhome
     container_name: adguardhome
     ports:
-      - 53:53/tcp
-      - 53:53/udp
-      - 853:853/tcp
-      - 3000:3000/tcp
-      - 80:80/tcp
-      - 443:443/tcp
+      - 10.0.0.214:53:53/tcp
+      - 10.0.0.214:53:53/udp
+      - 10.0.0.214:853:853/tcp
+      - 10.0.0.214:3000:3000/tcp
+      - 10.0.0.214:80:80/tcp
+      - 10.0.0.214:443:443/tcp
+      - 10.0.0.214:443:443/udp
     volumes:
       - "/home/ubuntu/docker/AdGuard/work:/opt/adguardhome/work"
       - "/home/ubuntu/docker/AdGuard/conf:/opt/adguardhome/conf"
@@ -41,11 +48,11 @@ services:
     environment:
       # ⚠️ Required:
       # Change this to your host's public address
-      - WG_HOST=[yourIP]
+      - WG_HOST=[Your IP]
 
       # Optional:
-      - PASSWORD=[yourpassword]
-      - WG_PORT=51820
+      - PASSWORD=[Your Password
+      - WG_PORT=15296 # Change port if you want
       - WG_DEFAULT_ADDRESS=10.6.0.x
       - WG_DEFAULT_DNS=10.2.0.10 # Points to adguardhome
       # - WG_ALLOWED_IPS=192.168.15.0/24, 10.0.1.0/24
@@ -54,8 +61,8 @@ services:
     volumes:
       - "/home/ubuntu/docker/wireguard:/etc/wireguard"
     ports:
-      - "51820:51820/udp"
-      - "51821:51821/tcp"
+      - "10.0.0.214:15296:51820/udp"
+      - "10.0.0.214:15296:51821/tcp"
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
