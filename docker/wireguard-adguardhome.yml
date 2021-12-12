@@ -9,15 +9,13 @@ networks:
 
 services:
   unbound:
-    image: mvance/unbound-rpi
+    image: klutchell/unbound
     container_name: unbound
     restart: unless-stopped
-    # Use ports if needed
-    # ports:
-      # - 10.0.0.214:5335:5335/tcp
-      # - 10.0.0.214:5335:5335/udp
-    volumes:
-      - "/home/ubuntu/docker/unbound:/etc/unbound/unbound.conf.d"
+    ports:
+      - 5053:5053/tcp
+      - 5053:5053/udp
+
     networks:
       private_network:
         ipv4_address: 10.2.0.5
@@ -48,11 +46,11 @@ services:
     environment:
       # ⚠️ Required:
       # Change this to your host's public address
-      - WG_HOST=[Your IP]
+      - WG_HOST=152.70.86.56
 
       # Optional:
-      - PASSWORD=[Your Password
-      - WG_PORT=15296 # Change port if you want
+      - PASSWORD=tamthao66
+      - WG_PORT=15296
       - WG_DEFAULT_ADDRESS=10.6.0.x
       - WG_DEFAULT_DNS=10.2.0.10 # Points to adguardhome
       # - WG_ALLOWED_IPS=192.168.15.0/24, 10.0.1.0/24
