@@ -18,7 +18,7 @@ services:
       MYSQL_USER: 'admin'
       MYSQL_PASSWORD: 'Tamthao@6693'
     volumes:
-      - '/home/opc/nginx/data/mysql:/var/lib/mysql'
+      - '/home/opc/docker/nginx/data/mysql:/var/lib/mysql'
     networks:
       local_ip:
         ipv4_address: 10.41.0.3
@@ -38,8 +38,8 @@ services:
       DB_MYSQL_PASSWORD: 'Tamthao@6693'
       DB_MYSQL_NAME: 'npm'
     volumes:
-      - '/home/opc/nginx/data:/data'
-      - '/home/opc/nginx/letsencrypt:/etc/letsencrypt'
+      - '/home/opc/docker/nginx/data:/data'
+      - '/home/opc/docker/nginx/letsencrypt:/etc/letsencrypt'
     networks:
       local_ip:
         ipv4_address: 10.41.0.4
@@ -61,6 +61,7 @@ services:
     image: adguard/adguardhome:latest
     container_name: adguardhome
     ports:
+      - '8080:80' # HTTP port
       - '8443:443' # Port for DNS-over-HTTPS
       - '853:853/tcp' # Port for DNS-over-TLS
       - '3000:3000/tcp' # AdguardHome configuration port
