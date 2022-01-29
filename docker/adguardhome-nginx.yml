@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 networks:
   local_ip:
@@ -10,7 +10,7 @@ networks:
 services:
   database:
     image: 'jc21/mariadb-aria:latest'
-    container_name: 'mariadb'
+    container_name: mariadb
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: 'Tamthao@6693'
@@ -18,55 +18,55 @@ services:
       MYSQL_USER: 'admin'
       MYSQL_PASSWORD: 'Tamthao@6693'
     volumes:
-      - "/home/ubuntu/nginx/data/mysql:/var/lib/mysql"
+      - '/home/opc/nginx/data/mysql:/var/lib/mysql'
     networks:
       local_ip:
         ipv4_address: 10.41.0.3
   nginx:
     depends_on: [mariadb]
     image: 'jc21/nginx-proxy-manager:latest'
-    container_name: "NPM"
+    container_name: NPM
     restart: unless-stopped
     ports:
       - '80:80' # Public HTTP Port
       - '443:443' # Public HTTPS Port
       - '81:81' # Admin Web Port
     environment:
-      DB_MYSQL_HOST: "database"
+      DB_MYSQL_HOST: 'database'
       DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "admin"
-      DB_MYSQL_PASSWORD: "Tamthao@6693"
-      DB_MYSQL_NAME: "npm"
+      DB_MYSQL_USER: 'admin'
+      DB_MYSQL_PASSWORD: 'Tamthao@6693'
+      DB_MYSQL_NAME: 'npm'
     volumes:
-      - "/home/ubuntu/nginx/data:/data"
-      - "/home/ubuntu/nginx/letsencrypt:/etc/letsencrypt"
+      - '/home/opc/nginx/data:/data'
+      - '/home/opc/nginx/letsencrypt:/etc/letsencrypt'
     networks:
       local_ip:
         ipv4_address: 10.41.0.4
 
   unbound:
-    image: crazymax/unbound
+    image: 'crazymax/unbound:latest'
     container_name: unbound
     restart: unless-stopped
     volumes:
-      - "/home/ubuntu/docker/unbound/config:/config"
+      - '/home/opc/docker/unbound/config:/config'
     ports:
-      - "5335:5335"
+      - '5335:5335'
     networks:
       local_ip:
         ipv4_address: 10.41.0.5
   
   adguardhome:
     depends_on: [unbound]
-    image: adguard/adguardhome
+    image: adguard/adguardhome:latest
     container_name: adguardhome
     ports:
-      - "8443:443" # Port for DNS-over-HTTPS
-      - "853:853/tcp" # Port for DNS-over-TLS
-      - "3000:3000/tcp" # AdguardHome configuration port
+      - '8443:443' # Port for DNS-over-HTTPS
+      - '853:853/tcp' # Port for DNS-over-TLS
+      - '3000:3000/tcp' # AdguardHome configuration port
     volumes:
-      - "/home/ubuntu/docker/AdGuard/work:/opt/adguardhome/work"
-      - "/home/ubuntu/docker/AdGuard/conf:/opt/adguardhome/conf"
+      - '/home/opc/docker/AdGuard/work:/opt/adguardhome/work'
+      - '/home/opc/docker/AdGuard/conf:/opt/adguardhome/conf'
     restart: unless-stopped
     networks:
       local_ip:
@@ -80,12 +80,12 @@ services:
       - WG_PORT=15296
       - WG_DEFAULT_ADDRESS=10.6.0.x
       - WG_DEFAULT_DNS=10.41.0.6
-    image: weejewel/wg-easy
+    image: 'weejewel/wg-easy:latest'
     container_name: wireguard
     ports:
-      - "15296:51820/udp" # Wireguard using UDP, the Web UI port (51281/tcp) is omitted
+      - '15296:51820/udp' # Wireguard using UDP, the Web UI port (51281/tcp) is omitted
     volumes:
-      - "/home/ubuntu/docker/wireguard:/etc/wireguard"
+      - '/home/opc/docker/wireguard:/etc/wireguard'
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
