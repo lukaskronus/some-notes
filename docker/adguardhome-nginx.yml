@@ -18,12 +18,12 @@ services:
       MYSQL_USER: 'admin'
       MYSQL_PASSWORD: 'Tamthao@6693'
     volumes:
-      - '/home/opc/docker/nginx/data/mysql:/var/lib/mysql'
+      - '/home/ubuntu/docker/nginx/data/mysql:/var/lib/mysql'
     networks:
       local_ip:
         ipv4_address: 10.41.0.3
   nginx:
-    depends_on: [mariadb]
+    depends_on: [database]
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: NPM
     restart: unless-stopped
@@ -38,8 +38,8 @@ services:
       DB_MYSQL_PASSWORD: 'Tamthao@6693'
       DB_MYSQL_NAME: 'npm'
     volumes:
-      - '/home/opc/docker/nginx/data:/data'
-      - '/home/opc/docker/nginx/letsencrypt:/etc/letsencrypt'
+      - '/home/ubuntu/docker/nginx/data:/data'
+      - '/home/ubuntu/docker/nginx/letsencrypt:/etc/letsencrypt'
     networks:
       local_ip:
         ipv4_address: 10.41.0.4
@@ -49,7 +49,7 @@ services:
     container_name: unbound
     restart: unless-stopped
     volumes:
-      - '/home/opc/docker/unbound/config:/config'
+      - '/home/ubuntu/docker/unbound/config:/config'
     ports:
       - '5335:5335'
     networks:
@@ -66,8 +66,8 @@ services:
       - '853:853/tcp' # Port for DNS-over-TLS
       - '3000:3000/tcp' # AdguardHome configuration port
     volumes:
-      - '/home/opc/docker/AdGuard/work:/opt/adguardhome/work'
-      - '/home/opc/docker/AdGuard/conf:/opt/adguardhome/conf'
+      - '/home/ubuntu/docker/AdGuard/work:/opt/adguardhome/work'
+      - '/home/ubuntu/docker/AdGuard/conf:/opt/adguardhome/conf'
     restart: unless-stopped
     networks:
       local_ip:
@@ -86,7 +86,7 @@ services:
     ports:
       - '15296:51820/udp' # Wireguard using UDP, the Web UI port (51281/tcp) is omitted
     volumes:
-      - '/home/opc/docker/wireguard:/etc/wireguard'
+      - '/home/ubuntu/docker/wireguard:/etc/wireguard'
     restart: unless-stopped
     cap_add:
       - NET_ADMIN
