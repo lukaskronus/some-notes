@@ -1,0 +1,30 @@
+version: '3'
+
+networks:
+    default:
+        external:
+            name: fukuroaki
+    fukuroaki:
+        external: true
+
+volumes:
+    npm:
+        external: true
+
+services:
+    nginx:
+        image: 'jc21/nginx-proxy-manager:latest'
+        container_name: NPM
+        restart: unless-stopped
+        ports:
+            - '80:80' # Public HTTP Port
+            - '443:443' # Public HTTPS Port
+            - '81:81' # Admin Web Port
+        environment:
+            DISABLE_IPV6: 'true'
+        volumes:
+            - 'npm:/data'
+            - 'npm:/etc/letsencrypt'
+        networks:
+            fukuroaki:
+                ipv4_address: 10.41.94.4
