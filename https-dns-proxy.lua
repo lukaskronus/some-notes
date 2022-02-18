@@ -1,18 +1,24 @@
-### AhaDNS Blitz ###
 return {
-        name = "Blitz AhaDNS",
+        name = "fukuro.dns.japan",
+        label = _("Fukuro DNS Japan"),
+        resolver_url = "https://doh.tweensora.jp.eu.org/dns-query",
+        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
+}
+return {
+        name = "serverless.dns.deno",
+        label = _("ServerlessDNS Deno"),
+        resolver_url = "https://kagentsuki.deno.dev/1:IB6AAIABBAAAgCAA",
+        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
+}
+return {
+        name = "workers.cloudflare.serverless",
+        label = _("RethinkDNS CF Worker"),
+        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:IB6AAIABBAAAgCAA",
+        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
+}
+return {
+        name = "blitz.ahadns.com",
         label = _("Blitz AhaDNS"),
         resolver_url = "https://blitz.ahadns.com/1:1.5.7.10.11.17.18.20.26",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
+        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
-
-### RethinkDNS ###
-return {
-        name = "basic.rethinkdns.com",
-        label = _("Rethink DNS (Configurable)"),
-        resolver_url = "https://basic.rethinkdns.com/1:IB6AAIABBAAAgCAA",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-
-### RethinkDNS Alternative ###
-Link: https://fukurodns.deno.dev/1:4A6AAQQAAIAAAQAxKAA=
