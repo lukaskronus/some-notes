@@ -13,12 +13,12 @@ return {
 return {
         name = "workers.cloudflare.serverless",
         label = _("RethinkDNS CF Worker"),
-        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:IB6AAIABBAAAgCAA",
+        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:4BqAAIABAIAIAAAxIAA=",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
 return {
         name = "blitz.ahadns.com",
         label = _("Blitz AhaDNS"),
-        resolver_url = "https://blitz.ahadns.com/1:1.5.7.10.11.17.18.20.26",
+        resolver_url = "https://blitz.ahadns.com/1:1.5.7.10.11.18.20.26",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
