@@ -7,13 +7,13 @@ return {
 return {
         name = "serverless.dns.deno",
         label = _("ServerlessDNS Deno"),
-        resolver_url = "https://kagentsuki.deno.dev/1:4BSAAAYACAAAMSAA",
+        resolver_url = "https://kagentsuki.deno.dev/1:4ByAAIABAgAIAAAxIAA=",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
 return {
         name = "workers.cloudflare.serverless",
         label = _("RethinkDNS CF Worker"),
-        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:4BqAAIABAIAIAAAxIAA=",
+        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:4ByAAIABAgAIAAAxIAA=",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
 return {
