@@ -7,18 +7,18 @@ return {
 return {
         name = "serverless.dns.deno",
         label = _("ServerlessDNS Deno"),
-        resolver_url = "https://headoffice2.deno.dev/1:YByAAIABBgAAMeAA",
+        resolver_url = "https://headoffice2.deno.dev/1:YFwAQIAAgAEGAAAx4AA=",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
 return {
         name = "workers.cloudflare.serverless",
         label = _("RethinkDNS CF Worker"),
-        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:YByAAIABBgAAMeAA",
+        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:YFwAQIAAgAEGAAAx4AA=",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
 return {
         name = "blitz.ahadns.com",
         label = _("Blitz AhaDNS"),
-        resolver_url = "https://blitz.ahadns.com/1:1.4.7.20.22.23.26",
+        resolver_url = "https://blitz.ahadns.com/1:1.4.7.10.11.12.20.22.23.26",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
