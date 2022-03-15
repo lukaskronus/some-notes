@@ -1,0 +1,12 @@
+#!/bin/sh
+
+TARGET_IPSET='wan'
+TARGET_FNAME="/etc/VNIP"
+
+_ret=1
+
+if [ -s "$TARGET_FNAME" ]; then
+	awk -v ipset="$TARGET_IPSET" '{print "add " ipset " " $1}' "$TARGET_FNAME" | ipset restore -! && _ret=0
+fi
+
+return $_ret
