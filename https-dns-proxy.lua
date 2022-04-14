@@ -22,3 +22,9 @@ return {
         resolver_url = "https://blitz.ahadns.com/1:1.4.7.10.11.12.20.22.23.26",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
 }
+return {
+        name = "chuoixam.dns.singapore",
+        label = _("Chuoixam DNS"),
+        resolver_url = "https://agh.chuoixam.eu.org/dns-query",
+        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001"
+}
