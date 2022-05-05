@@ -40,3 +40,9 @@ return {
 	resolver_url = "https://doh-sg.blahdns.com/dns-query",
 	bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
+return {
+	name = "controld2",
+	label = _("ControlD - P2"),
+	resolver_url = "https://freedns.controld.com/p2",
+	bootstrap_dns = "76.76.2.2,76.76.10.2,2606:1a40::2,2606:1a40:1::2"
+}
