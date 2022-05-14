@@ -1,11 +1,8 @@
 version: '3'
 
 networks:
-    default:
-        external:
-            name: fukuroaki
-    fukuroaki:
-        external: true
+  fukuroaki:
+    external: true
 
 volumes:
     npm:
