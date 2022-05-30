@@ -46,3 +46,9 @@ return {
 	resolver_url = "https://freedns.controld.com/p2",
 	bootstrap_dns = "76.76.2.2,76.76.10.2,2606:1a40::2,2606:1a40:1::2"
 }
+return {
+	name = "vietpn.dns",
+	label = _("VIETPN - Voz DNS"),
+	resolver_url = "https://kids.vietcdn.net",
+	bootstrap_dns = "103.151.57.23,103.151.56.24"
+}
