@@ -31,7 +31,7 @@ return {
 return {
         name = "my.nextdns.io",
         label = _("Next DNS"),
-        resolver_url = "https://dns.nextdns.io/a5fddf",
+        resolver_url = "https://dns.nextdns.io/b4cc75",
         bootstrap_dns = "45.90.28.49,45.90.30.49"
 }
 return {
