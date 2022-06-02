@@ -49,6 +49,6 @@ return {
 return {
 	name = "vietpn.dns",
 	label = _("VIETPN - Voz DNS"),
-	resolver_url = "https://kids.vietcdn.net",
+	resolver_url = "https://kids.vietdns.vn",
 	bootstrap_dns = "103.151.57.23,103.151.56.24"
 }
