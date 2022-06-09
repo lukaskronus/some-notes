@@ -23,12 +23,6 @@ return {
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
-        name = "fukuroaki.dns.singapore",
-        label = _("FukuroAki DNS"),
-        resolver_url = "https://agh.fukuroaki.eu.org/dns-query",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-return {
         name = "my.nextdns.io",
         label = _("Next DNS"),
         resolver_url = "https://dns.nextdns.io/b4cc75",
@@ -41,14 +35,8 @@ return {
 	bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
-	name = "controld2",
-	label = _("ControlD - P2"),
-	resolver_url = "https://freedns.controld.com/p2",
-	bootstrap_dns = "76.76.2.2,76.76.10.2,2606:1a40::2,2606:1a40:1::2"
-}
-return {
 	name = "vietpn.dns",
 	label = _("VIETPN - Voz DNS"),
-	resolver_url = "https://kids.vietdns.vn",
-	bootstrap_dns = "103.151.57.23,103.151.56.24"
+	resolver_url = "https://dns.vietdns.vn",
+	bootstrap_dns = "103.151.57.2,103.151.56.2"
 }
