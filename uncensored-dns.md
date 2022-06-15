@@ -11,9 +11,11 @@ Vanilla: https://cloudflare-dns.com/dns-query</br>
 ## Others ##
 Quad9: https://dns.quad9.net/dns-query</br>
 DNS.SB: https://doh.sb/dns-query</br>
+VietDNS: https://ns.vietdns.vn</br>
 
 # DNS-over-TLS (DoT) #
 
 Cloudflare: <a href="">1dot1dot1dot1.cloudflare-dns.com</a></br>
 Quad9: <a href="">dns.quad9.net</a></br>
 DNS.SB: <a href="">dot.sb</a></br>
+VietDNS: <a href="">ns.vietdns.vn</a></br>
