@@ -1,7 +1,8 @@
 # DNS-over-HTTPS (DoH) #
 ## NextDNS ##
 Chromium: https://chromium.dns.nextdns.io</br>
-Firefox: https://firefox.dns.nextdns.io/</br>
+Firefox: https://firefox.dns.nextdns.io</br>
+Vanilla: https://dns.nextdns.io</br>
 
 ## Cloudflare ##
 Chromium: https://chrome.cloudflare-dns.com/dns-query</br>
