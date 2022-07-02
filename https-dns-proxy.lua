@@ -26,7 +26,7 @@ return {
         name = "my.nextdns.io",
         label = _("Next DNS"),
         resolver_url = "https://dns.nextdns.io/b4cc75",
-        bootstrap_dns = "45.90.28.49,45.90.30.49"
+        bootstrap_dns = "45.90.28.0,45.90.30.0"
 }
 return {
 	name = "doh-sg.blahdns.com",
