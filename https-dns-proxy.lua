@@ -1,7 +1,7 @@
 return {
         name = "fukuro.dns.japan",
         label = _("Fukuro DNS Japan"),
-        resolver_url = "https://agh.tweensora.jp.eu.org/dns-query",
+        resolver_url = "https://agh.fukuroaki.eu.org/dns-query",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
