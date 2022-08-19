@@ -1,25 +1,19 @@
 return {
         name = "fukuro.dns.japan",
         label = _("Fukuro DNS Japan"),
-        resolver_url = "https://agh.fukuroaki.eu.org/dns-query",
+        resolver_url = "https://agh.fkrt.ga/dns-query",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
         name = "serverless.dns.deno",
         label = _("ServerlessDNS Deno"),
-        resolver_url = "https://denodns.deno.dev/1:4AYCAAAZgAAAUCAA",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-return {
-        name = "workers.cloudflare.serverless",
-        label = _("RethinkDNS CF Worker"),
-        resolver_url = "https://serverless-dns.forgotten.workers.dev/1:4AYCAAAZgAAAUCAA",
+        resolver_url = "https://denodns.deno.dev/1:4AIAmJABAHDgPw==",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
         name = "blitz.ahadns.com",
         label = _("Blitz AhaDNS"),
-        resolver_url = "https://blitz.ahadns.com/1:1.4.8.12.24",
+        resolver_url = "https://blitz.ahadns.com/1:1.5.7.8.17.20.22.23",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
