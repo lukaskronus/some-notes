@@ -1,0 +1,31 @@
+version: "2.1"
+
+volumes:
+  nextcloud:
+  mariadb_10.5:
+
+services:
+  nextcloud:
+    image: lscr.io/linuxserver/nextcloud
+    container_name: nextcloud
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Asia/Ho_Chi_Minh
+
+    volumes:
+      - nextcloud:/config
+      - nextcloud:/data
+    restart: unless-stopped
+  
+  db:
+    image: mariadb:10.5
+    restart: always
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    volumes:
+      - mariadb_10.5:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_PASSWORD=
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
