@@ -1,7 +1,7 @@
 return {
         name = "fukuro.dns.japan",
         label = _("Fukuro DNS Japan"),
-        resolver_url = "https://agh.fkrt.ga/dns-query",
+        resolver_url = "https://dns.somedco.eu.org/dns-query/home",
         bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
@@ -23,14 +23,8 @@ return {
         bootstrap_dns = "45.90.28.0,45.90.30.0"
 }
 return {
-	name = "futuredns.me",
-	label = _("FutureDNS"),
-	resolver_url = "https://dns.futuredns.me/dns-query",
-	bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-return {
-	name = "vietpn.dns",
-	label = _("VIETPN - Voz DNS"),
+	name = "vietdns.vn",
+	label = _("VIETDNS"),
 	resolver_url = "https://dns.vietdns.vn",
 	bootstrap_dns = "103.151.57.2,103.151.56.2"
 }
