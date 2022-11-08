@@ -6,3 +6,9 @@ Code increase All stats
 0203A563:05
 0203A564:05
 0203A565:05
+
+Move Bonus (First 4 slots)
+3202BE69 000a
+3202BEB1 000a
+3202BEF9 000a
+3202BF41 000a
