@@ -1,0 +1,35 @@
+version: '3.8'
+
+networks:
+  kobayashi:
+    external: true
+
+services:
+  shinobi:
+    image: iowoi/shinobi:latest
+    container_name: shinobi
+    restart: unless-stopped
+    volumes:
+      - "/home/ubuntu/docker/shinobi/config:/config"
+      - "/home/ubuntu/docker/shinobi/customAutoLoad:/home/Shinobi/libs/customAutoLoad"
+      - "/home/ubuntu/docker/shinobi/databas:/var/lib/mysql"
+      - "/home/ubuntu/docker/shinobi/videos:/home/Shinobi/videos"
+      - "/home/ubuntu/docker/shinobi/plugins:/home/Shinobi/plugins"
+      - "/dev/shm/Shinobi/streams:/dev/shm/streams"
+      - "/etc/localtime:/etc/localtime:ro"
+    networks:
+      kobayashi:
+        ipv4_address: 192.168.96.8
+  
+  shinobi-tensorflow:
+    image: iowoi/shinobi-tensorflow:latest
+    container_name: shinobi-tensorflow
+    restart: unless-stopped
+    environment:
+      - PLUGIN_HOST=192.168.96.8
+      - PLUGIN_PORT=8080
+    volumes:
+      - "/home/ubuntu/docker/shinobi/docker-plugins/tensorflow:/config"
+    networks:
+      kobayashi:
+        ipv4_address: 192.168.96.9
