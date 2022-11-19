@@ -1,0 +1,50 @@
+{
+    "port": 8081,
+    "hostname": "127.0.0.1",
+    "cacheLocation": "C:\\Games\\Kancolle\\cache",
+    "checkForUpdates": true,
+    "startHidden": true,
+    "disableBrowserCache": false,
+    "verifyCache": false,
+    "serverIP": "",
+    "bypassGadgetUpdateCheck": true,
+    "gameVersionOverwrite": "false",
+    "preloadOnStart": false,
+    "showExtraButtons": false,
+    "enableModder": true,
+    "mods": [
+        {
+            "path": "C:\\Games\\Kancolle\\English Patch\\EN-patch.mod.json",
+            "lastCheck": 1668851906421,
+            "allowScripts": true,
+            "latestVersion": "3.21.0",
+            "url": "https://github.com/Oradimi/KanColle-English-Patch-KCCP/archive/master.zip"
+        }
+    ],
+    "preloader": {
+        "maxSimulPreload": 4,
+        "recommended": {
+            "static": true,
+            "assets": true,
+            "servername": true,
+            "maps": true,
+            "useitem": true,
+            "gadget": false
+        },
+        "sounds": {
+            "titlecalls": false,
+            "se": false,
+            "bgm": false,
+            "npcvoices": false,
+            "voices": false
+        },
+        "extra": {
+            "equips": false,
+            "furniture": false,
+            "ships": false
+        },
+        "cleanup": true
+    },
+    "configVersion": 3,
+    "autoStartup": false
+}
