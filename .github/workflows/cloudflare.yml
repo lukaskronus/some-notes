@@ -23,12 +23,8 @@ jobs:
         sudo -E apt-get -qq clean
 
     - name: Updating Cloudflare Gateway List
-      env:
-        CF_ID: ${{ secrets.CF_ID }}
-        CF_AC: ${{ secrets.CF_AC }}
-        CF_TOKEN: ${{ secrets.CF_TOKEN }}
       run: |
-        echo $CF_ID
-        echo $CF_AC
-        echo $CF_TOKEN
-        cat cfgateway.sh
+        export CF_ID="${{ secrets.CF_ID }}"
+        export CF_AC="${{ secrets.CF_AC }}"
+        export CF_TOKEN="${{ secrets.CF_TOKEN }}"
+        bash cfgateway.sh
