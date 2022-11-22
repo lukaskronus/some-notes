@@ -88,6 +88,10 @@ mkdir -p blockedUrl
 mv blockedUrl*.csv blockedUrl
 # rm *.csv
 
+cat $CF_ID
+cat $CF_AC
+cat $CF_TOKEN
+
 curl -X GET "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules" \
     -H "X-Auth-Email: $CF_AC" \
     -H "Authorization: $CF_TOKEN" \
