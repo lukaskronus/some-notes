@@ -1,9 +1,12 @@
+# https://firebog.net/
 urlList=(
-    "https://hblock.molinero.dev/hosts"
+    "https://adaway.org/hosts.txt"
+    "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts"
+    "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling/hosts"
 )
 
 urlListAdBlock=(
-    # "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
+    # "https://abp.oisd.nl"
 )
 
 # download all list and to csv
@@ -92,18 +95,11 @@ curl -X GET "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/lists"
 
 # de-active rule
 cd blockedUrl
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/eb1d7afc-f87a-4cc4-ab4d-9df3160970d2" \
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/fa50027d-b63b-4847-a8f0-981e69c6f249" \
     -H "X-Auth-Email: $CF_AC" \
     -H "Authorization: $CF_TOKEN" \
     -H "Content-Type: application/json" \
-    --data '{"id": "eb1d7afc-f87a-4cc4-ab4d-9df3160970d2","name": "Block Ads and Malicious","description": "","precedence": 10000,"enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "dns.fqdn == \"hohoho.ho\"","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": true,"block_reason": "","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {  "dp": false,  "dcp": false,  "dd": false,  "du": false,  "dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
-
-# de-active ruleH
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/cfab1ef5-9406-4014-94bc-f8fefa9ba1f3" \
-    -H "X-Auth-Email: $CF_AC" \
-    -H "Authorization: $CF_TOKEN" \
-    -H "Content-Type: application/json" \
-    --data '{"id": "cfab1ef5-9406-4014-94bc-f8fefa9ba1f3","name": "Block Ads and Malicious HTTP","description": "","precedence": 12000,"enabled": true,"action": "block","filters": ["http"],"created_at": "2022-08-25T09:01:27Z","updated_at": "2022-08-25T09:01:27Z","deleted_at": null,"traffic": "any(http.request.domains[*] == \"hohoho.ho\")","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": true,"block_reason": "Cloudflare Zero Trust Blocked! by KT","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {"dp": false,"dcp": false,"dd": false,"du": false,"dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}}'
+    --data '{"id": "fa50027d-b63b-4847-a8f0-981e69c6f249","name": "Block Ads and Malicious","description": "","enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "dns.fqdn == \"hohoho.ho\"","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": true,"block_reason": "","override_ips": null,"override_host": "","l4override": null,"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
 
 # get list lists
 curl -X GET "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/lists" \
@@ -156,27 +152,8 @@ sed '$ s/-//g' rules1.json >rules2.json
 rule=$(head -n 1 rules2.json)
 
 # apply rule
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/eb1d7afc-f87a-4cc4-ab4d-9df3160970d2" \
+curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/fa50027d-b63b-4847-a8f0-981e69c6f249" \
     -H "X-Auth-Email: $CF_AC" \
     -H "Authorization: $CF_TOKEN" \
     -H "Content-Type: application/json" \
-    --data '{"id": "eb1d7afc-f87a-4cc4-ab4d-9df3160970d2","name": "Block Ads and Malicious","description": "","precedence": 10000,"enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "'"$rule"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": false,"block_reason": "Cloudflare Zero Trust Listing","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {  "dp": false,  "dcp": false,  "dd": false,  "du": false,  "dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
-
-# generate the ruleH
-echo -n '' >rulesH1.json
-echo -n 'any(http.request.domains[*] == \"hohoho.ho\")' | cat - rulesH1.json >temp && mv temp rulesH1.json
-jq -r -c '.result[].id' gatewayListJson | while read i; do
-    echo -n " and any(http.request.domains[*] in $"$i")" >>rulesH1.json
-done
-sed '$ s/-//g' rulesH1.json >rulesH2.json
-ruleH=$(head -n 1 rulesH2.json)
-
-rm gatewayListJson
-rm rules*.json
-
-# apply rule http
-curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/cfab1ef5-9406-4014-94bc-f8fefa9ba1f3" \
-    -H "X-Auth-Email: $CF_AC" \
-    -H "Authorization: $CF_TOKEN" \
-    -H "Content-Type: application/json" \
-    --data '{"id": "cfab1ef5-9406-4014-94bc-f8fefa9ba1f3","name": "Block Ads and Malicious HTTP","description": "","precedence": 12000,"enabled": true,"action": "block","filters": ["http"],"created_at": "2022-08-25T09:01:27Z","updated_at": "2022-08-25T09:01:27Z","deleted_at": null,"traffic": "'"$ruleH"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": false,"block_reason": "Cloudflare Zero Trust Listing","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {"dp": false,"dcp": false,"dd": false,"du": false,"dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}}'
+    --data '{"id": "fa50027d-b63b-4847-a8f0-981e69c6f249","name": "Block Ads and Malicious","description": "","enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "'"$rule"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": false,"block_reason": "Made by Fukuro","override_ips": null,"override_host": "","l4override": null,"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
