@@ -1,5 +1,4 @@
 urlList=(
-    "https://dbl.oisd.nl"
     "https://hblock.molinero.dev/hosts"
 )
 
