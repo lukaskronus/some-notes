@@ -1,16 +1,10 @@
-# https://firebog.net/
 urlList=(
     "https://dbl.oisd.nl"
     "https://hblock.molinero.dev/hosts"
-    "https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts"
-    "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
-    "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts"
-    "https://raw.githubusercontent.com/blocklistproject/Lists/master/ads.txt"  
-    "https://raw.githubusercontent.com/badmojr/1Hosts/master/Pro/domains.wildcards"
 )
 
 urlListAdBlock=(
-    "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
+    # "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt"
 )
 
 # download all list and to csv
@@ -167,7 +161,7 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/
     -H "X-Auth-Email: $CF_AC" \
     -H "Authorization: $CF_TOKEN" \
     -H "Content-Type: application/json" \
-    --data '{"id": "eb1d7afc-f87a-4cc4-ab4d-9df3160970d2","name": "Block Ads and Malicious","description": "","precedence": 10000,"enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "'"$rule"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": true,"block_reason": "Cloudflare Zero Trust Blocked! by KT","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {  "dp": false,  "dcp": false,  "dd": false,  "du": false,  "dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
+    --data '{"id": "eb1d7afc-f87a-4cc4-ab4d-9df3160970d2","name": "Block Ads and Malicious","description": "","precedence": 10000,"enabled": true,"action": "block","filters": ["dns"],"created_at": "2022-08-24T06:55:54Z","updated_at": "2022-08-25T06:19:46Z","deleted_at": null,"traffic": "'"$rule"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": false,"block_reason": "Cloudflare Zero Trust Listing","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {  "dp": false,  "dcp": false,  "dd": false,  "du": false,  "dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}    }'
 
 # generate the ruleH
 echo -n '' >rulesH1.json
@@ -186,4 +180,4 @@ curl -X PUT "https://api.cloudflare.com/client/v4/accounts/$CF_ID/gateway/rules/
     -H "X-Auth-Email: $CF_AC" \
     -H "Authorization: $CF_TOKEN" \
     -H "Content-Type: application/json" \
-    --data '{"id": "cfab1ef5-9406-4014-94bc-f8fefa9ba1f3","name": "Block Ads and Malicious HTTP","description": "","precedence": 12000,"enabled": true,"action": "block","filters": ["http"],"created_at": "2022-08-25T09:01:27Z","updated_at": "2022-08-25T09:01:27Z","deleted_at": null,"traffic": "'"$ruleH"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": true,"block_reason": "Cloudflare Zero Trust Blocked! by KT","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {"dp": false,"dcp": false,"dd": false,"du": false,"dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}}'
+    --data '{"id": "cfab1ef5-9406-4014-94bc-f8fefa9ba1f3","name": "Block Ads and Malicious HTTP","description": "","precedence": 12000,"enabled": true,"action": "block","filters": ["http"],"created_at": "2022-08-25T09:01:27Z","updated_at": "2022-08-25T09:01:27Z","deleted_at": null,"traffic": "'"$ruleH"'","identity": "","device_posture": "","version": 1,"rule_settings": {"block_page_enabled": false,"block_reason": "Cloudflare Zero Trust Listing","override_ips": null,"override_host": "","l4override": null,"biso_admin_controls": {"dp": false,"dcp": false,"dd": false,"du": false,"dk": false},"add_headers": {},"ip_categories": false,"check_session": null,"insecure_disable_dnssec_validation": false}}'
