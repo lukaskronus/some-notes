@@ -27,4 +27,8 @@ jobs:
         CF_ID: ${{ secrets.CF_ID }}
         CF_AC: ${{ secrets.CF_AC }}
         CF_TOKEN: ${{ secrets.CF_TOKEN }}
-      run: bash cfgateway.sh
+      run: |
+        echo $CF_ID
+        echo $CF_AC
+        echo $CF_TOKEN
+        cat cfgateway.sh
