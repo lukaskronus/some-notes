@@ -1,8 +1,8 @@
 name: Cloudflare Gateway
 
 on:
-  # schedule:
-  #   - cron: '0 0 * * 6'
+  schedule:
+    - cron: '0 0 * * *'
   workflow_dispatch:
 
 jobs:
@@ -13,18 +13,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@main
 
-    - name: Initialization environment
+    - name: Build docker
+      run: docker build . --file Dockerfile --tag cf-fukuro:latest && docker run -e CF_ID="${{ secrets.CF_ID }}" -e CF_AC="${{ secrets.CF_AC }}" -e CF_TOKEN="${{ secrets.CF_TOKEN }}" cf-fukuro:latest
       env:
-        DEBIAN_FRONTEND: noninteractive
-      run: |
-        sudo -E apt-get -qq update
-        sudo -E apt-get -y install wget curl jq
-        sudo -E apt-get -qq autoremove --purge
-        sudo -E apt-get -qq clean
-
-    - name: Updating Cloudflare Gateway List
-      run: |
-        export CF_ID="${{ secrets.CF_ID }}"
-        export CF_AC="${{ secrets.CF_AC }}"
-        export CF_TOKEN="${{ secrets.CF_TOKEN }}"
-        bash cfgateway.sh
+        ARGS: "-av"

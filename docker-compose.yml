@@ -1,0 +1,8 @@
+version: "3.8"
+services:
+  ubuntu:
+    build: .
+    volumes:
+      - ./bash:/root/files
+    env_file:
+      - .env
