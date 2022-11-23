@@ -1,10 +1,10 @@
 urlList=(
-    "https://adaway.org/hosts.txt"
-    "https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt"
+    "https://badmojr.gitlab.io/1hosts/Lite/hosts.txt"
+    "https://raw.githubusercontent.com/tiuxo/hosts/master/ads"
+    "https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts"
     "https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts"
+    "https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt"
     "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews-gambling/hosts"
-    "https://raw.githubusercontent.com/badmojr/1Hosts/master/Pro/domains.wildcards"
-    "https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt"
 )
 
 urlListAdBlock=(
