@@ -1,0 +1,88 @@
+// This is a template for x-ui
+{
+  "api": {
+    "services": [
+      "HandlerService",
+      "LoggerService",
+      "StatsService"
+    ],
+    "tag": "api"
+  },
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 15296,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "address": "127.0.0.1"
+      },
+      "tag": "api"
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      }
+    },
+    {
+      "protocol": "blackhole",
+      "settings": {},
+      "tag": "blocked"
+    },
+    // Any DNS queries outbound will be route to DNS servers
+    {
+      "protocol": "dns",
+      "settings": {},
+      "tag": "dns-out"
+    }
+  ],
+  // Forward DNS queries to adguardhome container at 192.168.96.4
+  // Can use outside DNS servers, not support secured DNS yet
+  "dns": {
+    "servers": [
+      "192.168.96.4"
+    ]
+  },
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true
+    }
+  },
+  "routing": {
+    "rules": [
+      {
+        "inboundTag": [
+          "api"
+        ],
+        "outboundTag": "api",
+        "type": "field"
+      },
+      // Force vmess inbound traffic to use dns outbound
+      {
+        "inboundTag": [
+          "vmess-in"
+        ],
+        "outboundTag": "dns-out",
+        "type": "field"
+      },
+      // Block bittorrent, not mine but it's useful
+      {
+        "outboundTag": "blocked",
+        "protocol": [
+          "bittorrent"
+        ],
+        "type": "field"
+      }
+    ]
+  },
+  "stats": {}
+}
