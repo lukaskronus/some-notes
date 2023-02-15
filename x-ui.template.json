@@ -11,7 +11,7 @@
   "inbounds": [
     {
       "listen": "127.0.0.1",
-      "port": 15296,
+      "port": 12345,
       "protocol": "dokodemo-door",
       "settings": {
         "address": "127.0.0.1"
@@ -74,11 +74,11 @@
         "outboundTag": "dns-out",
         "type": "field"
       },
-      // Block bittorrent, not mine but it's useful
+      // Block ads by geosite and blackhole protocol via tag
       {
         "outboundTag": "blocked",
-        "protocol": [
-          "bittorrent"
+        "domain": [
+          "geosite:category-ads-all"
         ],
         "type": "field"
       }
