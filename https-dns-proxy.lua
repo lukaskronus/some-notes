@@ -1,20 +1,14 @@
 return {
-        name = "fukuro.dns.japan",
-        label = _("Fukuro DNS Japan"),
-        resolver_url = "https://dns.somedco.eu.org/dns-query/home",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-return {
         name = "serverless.dns.deno",
         label = _("ServerlessDNS Deno"),
-        resolver_url = "https://denodns.deno.dev/1:4AIAjZAAAHDgPw==",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
+        resolver_url = "https://fkrtdns.deno.dev/1:4AIICYAAAFDgPw==",
+        bootstrap_dns = "9.9.9.11,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
         name = "blitz.ahadns.com",
         label = _("Blitz AhaDNS"),
         resolver_url = "https://blitz.ahadns.com/1:1.5.7.8.12.17.20.22.23.26",
-        bootstrap_dns = "1.1.1.1,1.0.0.1,2606:4700:4700::1111,2606:4700:4700::1001,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
+        bootstrap_dns = "9.9.9.11,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
 }
 return {
         name = "my.nextdns.io",
