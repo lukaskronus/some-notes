@@ -1,0 +1,67 @@
+[
+    {
+      "hostname": "greencloud-han-1.edge.nextdns.io",
+      "ips": [
+        "103.199.17.192",
+        "2404:fbc0::1:0:0:bb:6d75"
+      ]
+    },
+    {
+      "hostname": "anexia-han-1.edge.nextdns.io",
+      "ips": [
+        "203.162.172.59"
+      ]
+    },
+    {
+      "hostname": "bangmod-bkk-1.edge.nextdns.io",
+      "ips": [
+        "116.204.183.61"
+      ]
+    },
+    {
+      "hostname": "premiumrdp-bkk-1.edge.nextdns.io",
+      "ips": [
+        "43.229.79.19"
+      ]
+    },
+    {
+      "hostname": "thegigabit-kul-1.edge.nextdns.io",
+      "ips": [
+        "45.121.145.91"
+      ]
+    },
+    {
+      "hostname": "premiumrdp-kul-1.edge.nextdns.io",
+      "ips": [
+        "45.121.146.34"
+      ]
+    },
+    {
+      "hostname": "zepto-sin-1.edge.nextdns.io",
+      "ips": [
+        "194.156.163.172",
+        "2407:b9c0:e003:180:5054:ff:fe7f:c513"
+      ]
+    },
+    {
+      "hostname": "gsl-sin-1.edge.nextdns.io",
+      "ips": [
+        "103.62.48.147",
+        "2401:3bc0:600:101:c2f:a6e6:5afd:1"
+      ]
+    },
+    {
+      "hostname": "anexia-sin-1.edge.nextdns.io",
+      "ips": [
+        "217.146.9.93",
+        "2a00:11c0:26:4::5"
+      ]
+    },
+    {
+      "hostname": "vultr-sin-1.edge.nextdns.io",
+      "ips": [
+        "45.76.144.218",
+        "2001:19f0:4400:6432:5400:2ff:fec8:772b"
+      ]
+    }
+  ]
