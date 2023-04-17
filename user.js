@@ -1,24 +1,8 @@
-//
-/* You may copy+paste this file and use it as it is.
- *
- * If you make changes to your about:config while the program is running, the
- * changes will be overwritten by the user.js when the application restarts.
- *
- * To make lasting changes to preferences, you will have to edit the user.js.
- */
-
-/****************************************************************************
- * Betterfox                                                                *
- * "Ad meliora"                                                             *
- * version: 111                                                             *
- * url: https://github.com/yokoffing/Betterfox                              *
-****************************************************************************/
-
 /****************************************************************************
  * SECTION: FASTFOX                                                         *
 ****************************************************************************/
-user_pref("nglayout.initialpaint.delay", 0);
-user_pref("nglayout.initialpaint.delay_in_oopif", 0);
+user_pref("nglayout.initialpaint.delay", 2000);
+user_pref("nglayout.initialpaint.delay_in_oopif", 2000);
 user_pref("content.notify.interval", 100000);
 user_pref("browser.startup.preXulSkeletonUI", false);
 
@@ -257,6 +241,24 @@ user_pref("layout.css.has-selector.enabled", true);
 ****************************************************************************/
 // Enter your personal prefs below this line:
 user_pref("privacy.userContext.enabled", true);
+
+/** DOH3 and QUIC **/
+user_pref("network.trr.uri", "https://doh3.dns.nextdns.io");
+user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io");
+user_pref("network.trr.mode", 3);
+/*** ECH Enable ***/
+user_pref("network.dns.echconfig.enabled", true);
+user_pref("network.dns.http3_echconfig.enabled", true);
+/*** HTTP/3 Optimization ***/
+user_pref("network.http.http3.send_background_tabs_deprioritization", true);
+user_pref("network.http.http3.version_negotiation.enabled", true);
+user_pref("security.tls.ech.grease_http3", true);
+/*** Misc ***/
+user_pref("network.dns.skipTRR-when-parental-control-enabled", false);
+user_pref("network.trr.async_connInfo", true);
+user_pref("network.trr.confirmation_telemetry_enabled", false);
+user_pref("network.trr.disable-ECS", false);
+
 /****************************************************************************
  * END: BETTERFOX                                                           *
 ****************************************************************************/
