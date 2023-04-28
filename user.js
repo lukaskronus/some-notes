@@ -246,13 +246,17 @@ user_pref("privacy.userContext.enabled", true);
 user_pref("network.trr.uri", "https://doh3.dns.nextdns.io");
 user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io");
 user_pref("network.trr.mode", 3);
+user_pref("network.dns.force_use_https_rr", true);
+user_pref("network.dns.force_waiting_https_rr", true);
 /*** ECH Enable ***/
 user_pref("network.dns.echconfig.enabled", true);
 user_pref("network.dns.http3_echconfig.enabled", true);
+user_pref("network.dns.echconfig.fallback_to_origin_when_all_failed", false);
 /*** HTTP/3 Optimization ***/
 user_pref("network.http.http3.send_background_tabs_deprioritization", true);
 user_pref("network.http.http3.version_negotiation.enabled", true);
 user_pref("security.tls.ech.grease_http3", true);
+user_pref("security.tls.ech.disable_grease_on_fallback", false);
 /*** Misc ***/
 user_pref("network.dns.skipTRR-when-parental-control-enabled", false);
 user_pref("network.trr.async_connInfo", true);
