@@ -111,6 +111,7 @@ user_pref("network.trr.async_connInfo", true);
 user_pref("network.trr.confirmation_telemetry_enabled", false);
 user_pref("network.trr.disable-ECS", false);
 user_pref("network.trr.mode", 3);
+/*Can user personal ID with only blocking malware, phising... here: https://dns.nextdns.io/35686f */
 user_pref("network.trr.uri", "https://doh3.dns.nextdns.io/75a58e");
 user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io/75a58e");
 user_pref("network.trr.default_provider_uri", "https://doh3.dns.nextdns.io/75a58e");
