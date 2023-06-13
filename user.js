@@ -10,6 +10,10 @@ user_pref("browser.startup.preXulSkeletonUI", false);
 user_pref("layout.css.grid-template-masonry-value.enabled", true);
 user_pref("layout.css.animation-composition.enabled", true);
 user_pref("dom.enable_web_task_scheduling", true);
+/*** EARLY HINTS ***/
+user_pref("network.early-hints.enabled", true);
+user_pref("network.early-hints.preconnect.enabled", true);
+user_pref("network.early-hints.preconnect.max_connections", 20);
 
 /** GFX ***/
 user_pref("gfx.webrender.all", true);
