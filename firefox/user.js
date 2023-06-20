@@ -237,7 +237,8 @@ user_pref("layout.css.has-selector.enabled", true);
 ****************************************************************************/
 // visit https://github.com/yokoffing/Betterfox/blob/master/Smoothfox.js
 // Enter your scrolling prefs below this line:
-
+user_pref("general.smoothScroll", true); // DEFAULT
+user_pref("mousewheel.default.delta_multiplier_y", 275);  // 250-400
 /****************************************************************************
  * START: MY OVERRIDES                                                      *
 ****************************************************************************/
@@ -251,10 +252,9 @@ user_pref("network.trr.async_connInfo", true);
 user_pref("network.trr.confirmation_telemetry_enabled", false);
 user_pref("network.trr.disable-ECS", false);
 user_pref("network.trr.mode", 3);
-/*Can user personal ID with only blocking malware, phising... here: https://dns.nextdns.io/35686f */
-user_pref("network.trr.uri", "https://doh3.dns.nextdns.io/75a58e");
-user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io/75a58e");
-user_pref("network.trr.default_provider_uri", "https://doh3.dns.nextdns.io/75a58e");
+user_pref("network.trr.uri", "https://doh3.dns.nextdns.io/b7b3b7");
+user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io/b7b3b7");
+user_pref("network.trr.default_provider_uri", "https://doh3.dns.nextdns.io/b7b3b7");
 user_pref("network.dns.force_use_https_rr", true);
 user_pref("network.dns.force_waiting_https_rr", true);
 /** Force ECH working **/
@@ -262,12 +262,10 @@ user_pref("network.dns.echconfig.enabled", true);
 user_pref("network.dns.echconfig.fallback_to_origin_when_all_failed", false);
 user_pref("network.dns.http3_echconfig.enabled", true);
 user_pref("security.tls.ech.disable_grease_on_fallback", false);
-user_pref("security.tls.ech.grease_http3", true);
 user_pref("security.tls.ech.grease_probability", 100);
 user_pref("network.http.altsvc.oe", true);
 user_pref("network.dns.httpssvc.http3_fast_fallback_timeout", 0);
 user_pref("network.dns.port_prefixed_qname_https_rr", true);
-user_pref("dom.security.https_first", true);
 /****************************************************************************
  * END: BETTERFOX                                                           *
 ****************************************************************************/
