@@ -1,12 +1,18 @@
 #!/bin/sh
 
 TARGET_IPSET='wan'
-TARGET_FNAME="/etc/VNIP"
+TARGET_FNAME="/var/vnip"
+TARGET_URL="http://www.ipdeny.com/ipblocks/data/countries/vn.zone"
 
 _ret=1
+
+if [ ! -s "$TARGET_FNAME" ]; then
+	uclient-fetch --no-check-certificate -qO- "$TARGET_URL" 2>/dev/null > "$TARGET_FNAME"
+fi
 
 if [ -s "$TARGET_FNAME" ]; then
 	awk -v ipset="$TARGET_IPSET" '{print "add " ipset " " $1}' "$TARGET_FNAME" | ipset restore -! && _ret=0
 fi
+rm -f "$TARGET_FNAME"
 
 return $_ret
