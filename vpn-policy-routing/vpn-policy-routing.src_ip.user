@@ -1,0 +1,16 @@
+#!/bin/sh
+
+TARGET_IPSET="wan2"
+TARGET_FNAME="/etc/src_ip"
+
+_ret=1
+
+if [ -s "$TARGET_FNAME" ]; then
+	awk -v ipset="$TARGET_IPSET" '{print"add " ipset " " $1}' "$TARGET_FNAME" | ipset restore -! && _ret=0
+fi
+
+iptables -t mangle -A PREROUTING -m set --match-set "$TARGET_IPSET" src -j MARK --set-mark 1
+ip rule add fwmark 1 table 100
+ip route add default via "$TARGET_IPSET" dev "$TARGET_IPSET" table 100
+
+return $_ret
