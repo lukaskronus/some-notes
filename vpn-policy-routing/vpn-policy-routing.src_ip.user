@@ -6,11 +6,23 @@ TARGET_FNAME="/etc/src_ip"
 _ret=1
 
 if [ -s "$TARGET_FNAME" ]; then
-	awk -v ipset="$TARGET_IPSET" '{print"add " ipset " " $1}' "$TARGET_FNAME" | ipset restore -! && _ret=0
+  # Load the IP addresses from the file into the ipset
+  awk '{print $1}' "$TARGET_FNAME" | ipset restore -!
+  
+  # Apply the ipset to the PREROUTING chain in the mangle table
+  iptables -t mangle -A PREROUTING -m set --match-set "$TARGET_IPSET" src -j MARK --set-mark 1
+  
+  # Set the exit status to 0 if the ipset was successfully created and applied
+  _ret=0
 fi
 
-iptables -t mangle -A PREROUTING -m set --match-set "$TARGET_IPSET" src -j MARK --set-mark 1
-ip rule add fwmark 1 table 100
-ip route add default via "$TARGET_IPSET" dev "$TARGET_IPSET" table 100
+# Define a function to remove the ipset and associated firewall rule
+remove_ipset() {
+  iptables -t mangle -D PREROUTING -m set --match-set "$TARGET_IPSET" src -j MARK --set-mark 1
+  ipset destroy "$TARGET_IPSET"
+}
+
+# Set a trap to call the remove_ipset function when the script is terminated
+trap remove_ipset EXIT
 
 return $_ret
