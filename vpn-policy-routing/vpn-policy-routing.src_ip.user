@@ -1,7 +1,10 @@
 #!/bin/sh
 
 SOURCE_IPSET='wan2'
-SOURCE_FNAME="/etc/src_ip"
+SOURCE_FNAME='
+192.168.10.0/24
+192.168.11.0/24
+'
 
 _ret=1
 
