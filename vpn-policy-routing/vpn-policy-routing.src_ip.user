@@ -6,7 +6,7 @@ SOURCE_FNAME="192.168.10.0/24 192.168.11.0/24 192.168.12.0/24"
 _ret=1
 
 if [ -n "$SOURCE_FNAME" ]; then
-	echo "$SOURCE_FNAME" | awk -v ipset="$SOURCE_IPSET" '{print "add " ipset " " $1}' | ipset restore -! && _ret=0
+	echo "$SOURCE_FNAME" | awk -v ipset="$SOURCE_IPSET" '{ for(i=1; i<=NF; i++) print "add " ipset " " $i }' | ipset restore -! && _ret=0
 fi
 
 iptables -t mangle -A PREROUTING -m set --match-set $SOURCE_IPSET src -j MARK --set-mark 0x1
