@@ -1,17 +1,14 @@
 #!/bin/sh
 
 SOURCE_IPSET='wan2'
-SOURCE_FNAME='
-192.168.10.0/24
-192.168.11.0/24
-'
+SOURCE_FNAME='192.168.10.0/24 192.168.11.0/24'
 
-_ret=1
-
-if [ -s "$SOURCE_FNAME" ]; then
-	awk -v ipset="$SOURCE_IPSET" '{print "add " ipset " " $1}' "$SOURCE_FNAME" | ipset restore -! && _ret=0
-fi
+for entry in $SOURCE_FNAME; do
+	if ! ipset test $SOURCE_IPSET $entry; then
+		ipset add $SOURCE_IPSET $entry
+	fi
+done
 
 iptables -t mangle -A PREROUTING -m set --match-set $SOURCE_IPSET src -j MARK --set-mark 0x1
 
-return $_ret
+exit 0
