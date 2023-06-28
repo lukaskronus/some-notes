@@ -1,27 +1,22 @@
 #!/bin/sh
-
+# WIP
 check_ping () {
   server="$1"
   interface="$2"
   ping_result=$(ping -c 1 -I "$interface" -W 10 "$server" | grep 'time=' | awk -F 'time=' '{print $2}' | awk '{print $1}')
-  if [ -z "$ping_result" ]; then
-    # Error handling on ping failed
-    echo "Error: ping to $server failed or timed out"
-    exit 1
-  fi
+  ping_time=$(printf "%.0f" "$ping_result")
 }
 
 find_fastest_server () {
   server_list="/etc/servers"
   fastest_server=""
-  # Threshold for fastest_ping
-  fastest_ping=999999
+  fastest_ping=-1
   # Replace with the name of your WAN interface
   interface="wan"
 
   while read -r server; do
     ping_result=$(check_ping "$server" "$interface")
-    if [ -n "$ping_result" ] && [ "$ping_result" -lt "$fastest_ping" ]; then
+    if [  $fastest_ping -eq -1 ] || [ "$ping_result" -lt "$fastest_ping" ]; then
       fastest_server="$server"
       fastest_ping="$ping_result"
     fi
