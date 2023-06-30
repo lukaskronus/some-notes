@@ -1,5 +1,5 @@
 #!/bin/sh
-
+ 
 check_ping () {
   server="$1"
   interface="$2"
@@ -14,14 +14,14 @@ check_ping () {
     sleep 1
   done
 }
-
+ 
 find_fastest_server () {
   server_list="/etc/servers"
   fastest_ping=100
   fastest_server=
-  # Change to your default Interface
   interface="br-lan"
   while IFS= read -r server; do
+    echo "Checking server: $server"
     check_ping "$server" "$interface" &>/dev/null
     if [ "$ping_time" -lt "$fastest_ping" ]; then
       fastest_server="$server"
@@ -29,12 +29,14 @@ find_fastest_server () {
     fi
   done < "$server_list"
 }
-# Chaang to your VPN interface
+ 
 ifname="nordlynx"
+echo "Pinging..."
 check_ping "8.8.8.8" "$ifname" &>/dev/null
-
+echo "Current ping: $ping_time"
+ 
 # Check if VPN ping is lower than 50ms
-if [ "$ping_time" -eq 0 ] || [ "$ping_time" -lt 50 ]; then
+if [ "$ping_time" -lt 50 ]; then
   exit 0
 else
   find_fastest_server
@@ -48,5 +50,5 @@ else
     exit 0
   fi
 fi
-
+ 
 exit 0
