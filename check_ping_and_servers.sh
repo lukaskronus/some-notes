@@ -36,7 +36,7 @@ check_ping "8.8.8.8" "$ifname" &>/dev/null
 echo "Current ping: $ping_time"
  
 # Check if VPN ping is lower than 50ms
-if [ "$ping_time" -lt 50 ]; then
+if [ ! "$ping_time" -eq 0 ] && [ "$ping_time" -lt 50 ]; then
   exit 0
 else
   find_fastest_server
