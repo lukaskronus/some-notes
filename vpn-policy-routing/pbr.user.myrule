@@ -1,0 +1,17 @@
+#!/bin/sh
+
+TARGET_IPSET='pbr_viettel_4_src_net_user'
+TARGET_DATA="192.168.41.50/28 192.168.152.0/24"
+
+_ret=1
+
+
+if [ -s "$TARGET_DATA" ]; then
+	if ipset -q list "$TARGET_IPSET" >/dev/null 2>&1; then
+		if echo "$TARGET_DATA" | awk -v ipset="$TARGET_IPSET" '{print "add " ipset " " $1}' "$TARGET_DATA" | ipset restore -!; then
+			_ret=0
+		fi
+	fi
+fi
+
+return $_ret
