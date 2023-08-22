@@ -1,18 +1,15 @@
 return {
-        name = "serverless.dns.deno",
-        label = _("ServerlessDNS Deno"),
-        resolver_url = "https://fkrtdns.deno.dev/1:4AIICYAAAFDgPw==",
-        bootstrap_dns = "9.9.9.11,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
+        name = "cf.zero.trust",
+        label = _("CF ZeroTrust"),
+        resolver_url = "",
+        bootstrap_dns = "8.8.8.8, 9.9.9.11"
 }
+
 return {
-        name = "blitz.ahadns.com",
-        label = _("Blitz AhaDNS"),
-        resolver_url = "https://blitz.ahadns.com/1:1.5.7.8.12.17.20.22.23.26",
-        bootstrap_dns = "9.9.9.11,8.8.8.8,8.8.4.4,2001:4860:4860::8888,2001:4860:4860::8844"
-}
-return {
-        name = "my.nextdns.io",
-        label = _("Next DNS"),
-        resolver_url = "https://dns.nextdns.io/b4cc75",
-        bootstrap_dns = "45.90.28.0,45.90.30.0"
+        name = "dns.nextdns.io",
+        label = _("NextDNS"),
+        resolver_url = "https://doh3.dns.nextdns.io/52ac62",
+        bootstrap_dns = "45.90.28.49,45.90.30.49",
+        help_link = " https://my.nextdns.io",
+        help_link_text = "NextDNS.io"
 }
