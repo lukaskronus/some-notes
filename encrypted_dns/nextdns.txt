@@ -1,0 +1,27 @@
+1/ Không lọc quảng cáo/tracking:
+
+- Công cộng/Public: Không ECS, không lọc bất kỳ tên miền nào
++ iOS: https://tinyurl.com/2fxztrkt
++ Android: dns.nextdns.io
+
+- Không bộ lọc/NoFilters (75a58e): Chỉ lọc mã độc
++ iOS: https://tinyurl.com/29zylcdw
++ Android: 75a58e.dns.nextdns.io
+
+- Không tên miền mới/NoNRDs (b7b3b7): Lọc mã độc, tên miền mới đăng ký và chặn gambling
++ iOS: https://tinyurl.com/2juvkqeu
++ Android: b7b3b7.dns.nextdns.io
+
+2/ Có lọc quảng cáo/tracking:
+
+- Cơ bản/hostsVN (fd88ba): Bộ lọc bao gồm NextDNS, Adguard DNS, hostsVN; bật Allow một số tên miền tracking (nhấn qc trong kết quả tìm kiếm Google, nhấn link Shopee,...)
++ iOS: https://tinyurl.com/28uholrb
++ Andoird: fd88ba.dns.nextdns.io
+
+- Nghiêm ngặt/Strict (b83b69): Bộ lọc bao gồm NextDNS, Adguard DNS, hostsVN; Bật chặn gambling
++ iOS: https://tinyurl.com/2lu32vxj
++ Andoird: b83b69.dns.nextdns.io
+
+- Trẻ em/Kids (52ac62): Bộ lọc bao gồm NextDNS, Adguard DNS, hostsVN; bật Safe search; Bật chặn pỏn/gambling/dating
++ iOS: https://tinyurl.com/2f8ncywf
++ Andoird: 52ac62.dns.nextdns.io
