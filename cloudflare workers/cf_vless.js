@@ -4,12 +4,12 @@ import { connect } from 'cloudflare:sockets';
 
 // How to generate your own UUID:
 // [Windows] Press "Win + R", input cmd and run:  Powershell -NoExit -Command "[guid]::NewGuid()"
-let userID = '1c2a076b-ff4c-4165-b6a1-0d42c84beee2';
+let userID = '5f3c961e-02e7-4b49-985e-4ccd80628585';
 
-const proxyIPs = ['time.cloudflare.com', 'www.visa.com', 'shopify.com'];
+const proxyIPs = ['voz.vn', 'abpvn.com', 'tinhte.vn', 'vn-z.vn'];
 let proxyIP = proxyIPs[Math.floor(Math.random() * proxyIPs.length)];
 
-let dohURL = 'https://refq1xr2aa.cloudflare-gateway.com/dns-query'; // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
+let dohURL = 'https://doh3.dns.nextdns.io/ec69ec'; // https://cloudflare-dns.com/dns-query or https://dns.google/dns-query
 
 // v2board api environment variables
 let nodeId = ''; // 1
@@ -101,7 +101,7 @@ export default {
                     default:
                         // return new Response('Not found', { status: 404 });
                         // For any other path, reverse proxy to 'maimai.sega.jp' and return the original response
-                        url.hostname = Math.random() < 0.5 ? 'maimai.sega.com' : 'maimai.sega.jp';
+                        url.hostname = 'maimai.sega.jp';
                         url.protocol = 'https:';
                         request = new Request(url, request);
                         return await fetch(request);
@@ -110,7 +110,7 @@ export default {
                 return await vlessOverWSHandler(request);
             }
         } catch (err) {
-            /** @type {Error} */ let e = err;
+			/** @type {Error} */ let e = err;
             return new Response(e.toString());
         }
     },
@@ -138,7 +138,7 @@ async function vlessOverWSHandler(request) {
         console.log(`[${address}:${portWithRandomLog}] ${info}`, event || '');
     };
     const earlyDataHeader = request.headers.get('sec-websocket-protocol') || '';
-
+    
     const readableWebSocketStream = makeReadableWebSocketStream(webSocket, earlyDataHeader, log);
 
     /** @type {{ value: import("@cloudflare/workers-types").Socket | null}}*/
@@ -574,8 +574,8 @@ async function remoteSocketToWS(remoteSocket, webSocket, vlessResponseHeader, re
                     } else {
                         // seems no need rate limit this, CF seems fix this??..
                         // if (remoteChunkCount > 20000) {
-                        //  // cf one package is 4096 byte(4kb),  4096 * 20000 = 80M
-                        //  await delay(1);
+                        // 	// cf one package is 4096 byte(4kb),  4096 * 20000 = 80M
+                        // 	await delay(1);
                         // }
                         webSocket.send(chunk);
                     }
@@ -746,32 +746,36 @@ async function handleUDPOutBound(webSocket, vlessResponseHeader, log) {
  * @returns {string}
  */
 function getVLESSConfig(userID, hostName) {
-    const vlessLink = `vless://${userID}@${hostName}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}#${hostName}`
-    const vlessTlsLink = `vless://${userID}@${hostName}:443?encryption=none&security=tls&sni=${hostName}&fp=randomized&type=ws&host=${hostName}#${hostName}`
+    const vlessLink = `vless://${userID}@${hostName}:80?encryption=none&security=none&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#${hostName}`
+    const vlessTlsLink = `vless://${userID}@${hostName}:443?encryption=none&security=tls&fp=randomized&type=ws&host=${hostName}&path=%2F%3Fed%3D2048#${hostName}`
     return `
-Node information and shared link for non-TLS port:
 
-Address: ${hostName}
+Node information and vless link for non-TLS port:
+
+Address: ${hostName} (or CF preferred IP)
 Port: 80
 UUID: ${userID}
 Transport:ws
 Host(Disguised domain name): ${hostName}
+Path:/?ed=2048
 
 ${vlessLink}
 
-Node information and shared link for TLS port:
+Node information and vless link for TLS port：
 
-Address: ${hostName}
+Address: ${hostName} (or CF preferred IP)
 Port: 443
 UUID: ${userID}
 Transport:ws
-Transport Layer Security: TLS
+Layer Security: TLS
 Host(Disguised domain name): ${hostName}
-SNI domain name: ${hostName}
+Path:/?ed=2048
+SNI: ${hostName}
 
 ${vlessTlsLink}
 
 Tip: If you use the workers.dev domain name, you cannot use the TLS port
--------------------------------------------------- -------------
+---------------------------------------------------------------
+Credit: https://blog.misaka.rest
 `;
 }
