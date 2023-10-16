@@ -1,150 +1,259 @@
-// Enable Multi-Account Container
-user_pref("privacy.userContext.enabled", true); //enable Multi-Account Container
-user_pref("privacy.userContext.ui.enabled", true); //enable Multi-Account Container
+//
+/* You may copy+paste this file and use it as it is.
+ *
+ * If you make changes to your about:config while the program is running, the
+ * changes will be overwritten by the user.js when the application restarts.
+ *
+ * To make lasting changes to preferences, you will have to edit the user.js.
+ */
 
-/*** [SECTION 0200]: GEOLOCATION / LANGUAGE / LOCALE ***/
-user_pref("_user.js.parrot", "0200 syntax error: the parrot's definitely deceased!");
-/* 0201: use Mozilla geolocation service instead of Google if permission is granted [FF74+]
- * Optionally enable logging to the console (defaults to false) ***/
+/****************************************************************************
+ * Betterfox                                                                *
+ * "Ad meliora"                                                             *
+ * version: 115                                                             *
+ * url: https://github.com/yokoffing/Betterfox                              *
+****************************************************************************/
+
+/****************************************************************************
+ * SECTION: FASTFOX                                                         *
+****************************************************************************/
+user_pref("nglayout.initialpaint.delay", 0);
+user_pref("nglayout.initialpaint.delay_in_oopif", 0);
+user_pref("content.notify.interval", 100000);
+user_pref("browser.startup.preXulSkeletonUI", false);
+
+/** EXPERIMENTAL ***/
+user_pref("layout.css.grid-template-masonry-value.enabled", true);
+user_pref("layout.css.animation-composition.enabled", true);
+user_pref("dom.enable_web_task_scheduling", true);
+
+/** GFX ***/
+user_pref("gfx.webrender.all", true);
+user_pref("gfx.webrender.precache-shaders", true);
+user_pref("gfx.webrender.compositor", true);
+user_pref("layers.gpu-process.enabled", true);
+user_pref("media.hardware-video-decoding.enabled", true);
+user_pref("gfx.canvas.accelerated", true);
+user_pref("gfx.canvas.accelerated.cache-items", 32768);
+user_pref("gfx.canvas.accelerated.cache-size", 4096);
+user_pref("gfx.content.skia-font-cache-size", 80);
+user_pref("image.cache.size", 10485760);
+user_pref("image.mem.decode_bytes_at_a_time", 131072);
+user_pref("image.mem.shared.unmap.min_expiration_ms", 120000);
+user_pref("media.memory_cache_max_size", 1048576);
+user_pref("media.memory_caches_combined_limit_kb", 2560000);
+user_pref("media.cache_readahead_limit", 9000);
+user_pref("media.cache_resume_threshold", 6000);
+
+/** BROWSER CACHE ***/
+user_pref("browser.cache.memory.max_entry_size", 153600);
+
+/** NETWORK ***/
+user_pref("network.buffer.cache.size", 262144);
+user_pref("network.buffer.cache.count", 128);
+user_pref("network.http.max-connections", 1800);
+user_pref("network.http.max-persistent-connections-per-server", 10);
+user_pref("network.ssl_tokens_cache_capacity", 32768);
+
+/****************************************************************************
+ * SECTION: SECUREFOX                                                       *
+****************************************************************************/
+/** TRACKING PROTECTION ***/
+user_pref("browser.contentblocking.category", "strict");
+user_pref("urlclassifier.trackingSkipURLs", "*.reddit.com, *.twitter.com, *.twimg.com, *.tiktok.com");
+user_pref("urlclassifier.features.socialtracking.skipURLs", "*.instagram.com, *.twitter.com, *.twimg.com");
+user_pref("privacy.query_stripping.strip_list", "__hsfp __hssc __hstc __s _hsenc _openstat dclid fbclid gbraid gclid hsCtaTracking igshid mc_eid ml_subscriber ml_subscriber_hash msclkid oft_c oft_ck oft_d oft_id oft_ids oft_k oft_lk oft_sk oly_anon_id oly_enc_id rb_clickid s_cid twclid vero_conv vero_id wbraid wickedid yclid");
+user_pref("browser.uitour.enabled", false);
+user_pref("privacy.globalprivacycontrol.enabled", true);
+user_pref("privacy.globalprivacycontrol.functionality.enabled", true);
+
+/** OCSP & CERTS / HPKP ***/
+user_pref("security.OCSP.enabled", 0);
+user_pref("security.remote_settings.crlite_filters.enabled", true);
+user_pref("security.pki.crlite_mode", 2);
+user_pref("security.cert_pinning.enforcement_level", 2);
+
+/** SSL / TLS ***/
+user_pref("security.ssl.treat_unsafe_negotiation_as_broken", true);
+user_pref("browser.xul.error_pages.expert_bad_cert", true);
+user_pref("security.tls.enable_0rtt_data", false);
+
+/** DISK AVOIDANCE ***/
+user_pref("browser.cache.disk.enable", false);
+user_pref("browser.privatebrowsing.forceMediaMemoryCache", true);
+user_pref("browser.sessionstore.privacy_level", 2);
+
+/** SHUTDOWN & SANITIZING ***/
+user_pref("privacy.history.custom", true);
+
+/** SPECULATIVE CONNECTIONS ***/
+user_pref("network.http.speculative-parallel-limit", 0);
+user_pref("network.dns.disablePrefetch", true);
+user_pref("browser.urlbar.speculativeConnect.enabled", false);
+user_pref("browser.places.speculativeConnect.enabled", false);
+user_pref("network.prefetch-next", false);
+user_pref("network.predictor.enabled", false);
+user_pref("network.predictor.enable-prefetch", false);
+
+/** SEARCH / URL BAR ***/
+user_pref("browser.search.separatePrivateDefault.ui.enabled", true);
+user_pref("browser.urlbar.update2.engineAliasRefresh", true);
+user_pref("browser.search.suggest.enabled", false);
+user_pref("browser.urlbar.suggest.quicksuggest.sponsored", false);
+user_pref("browser.urlbar.suggest.quicksuggest.nonsponsored", false);
+user_pref("security.insecure_connection_text.enabled", true);
+user_pref("security.insecure_connection_text.pbmode.enabled", true);
+user_pref("network.IDN_show_punycode", true);
+
+/** HTTPS-FIRST MODE ***/
+user_pref("dom.security.https_first", true);
+
+/** PROXY / SOCKS / IPv6 ***/
+user_pref("network.proxy.socks_remote_dns", true);
+user_pref("network.file.disable_unc_paths", true);
+user_pref("network.gio.supported-protocols", "");
+
+/** PASSWORDS AND AUTOFILL ***/
+user_pref("signon.formlessCapture.enabled", false);
+user_pref("signon.privateBrowsingCapture.enabled", false);
+user_pref("signon.autofillForms", false);
+user_pref("signon.rememberSignons", false);
+user_pref("editor.truncate_user_pastes", false);
+
+/** ADDRESS + CREDIT CARD MANAGER ***/
+user_pref("extensions.formautofill.addresses.enabled", false);
+user_pref("extensions.formautofill.creditCards.enabled", false);
+user_pref("extensions.formautofill.heuristics.enabled", false);
+user_pref("browser.formfill.enable", false);
+
+/** MIXED CONTENT + CROSS-SITE ***/
+user_pref("network.auth.subresource-http-auth-allow", 1);
+user_pref("pdfjs.enableScripting", false);
+user_pref("extensions.postDownloadThirdPartyPrompt", false);
+user_pref("permissions.delegation.enabled", false);
+
+/** HEADERS / REFERERS ***/
+user_pref("network.http.referer.XOriginTrimmingPolicy", 2);
+
+/** CONTAINERS ***/
+user_pref("privacy.userContext.ui.enabled", true);
+
+/** WEBRTC ***/
+user_pref("media.peerconnection.ice.proxy_only_if_behind_proxy", true);
+user_pref("media.peerconnection.ice.default_address_only", true);
+
+/** SAFE BROWSING ***/
+user_pref("browser.safebrowsing.downloads.remote.enabled", false);
+
+/** MOZILLA ***/
+user_pref("accessibility.force_disabled", 1);
+user_pref("identity.fxaccounts.enabled", false);
+user_pref("browser.tabs.firefox-view", false);
+user_pref("permissions.default.desktop-notification", 2);
+user_pref("permissions.default.geo", 2);
 user_pref("geo.provider.network.url", "https://location.services.mozilla.com/v1/geolocate?key=%MOZILLA_API_KEY%");
-   // user_pref("geo.provider.network.logging.enabled", true); // [HIDDEN PREF]
-/* 0202: disable using the OS's geolocation service ***/
-user_pref("geo.provider.ms-windows-location", false); // [WINDOWS]
-user_pref("geo.provider.use_corelocation", false); // [MAC]
-user_pref("geo.provider.use_gpsd", false); // [LINUX]
-user_pref("geo.provider.use_geoclue", false); // [FF102+] [LINUX]
-/* 0210: set preferred language for displaying pages
- * [SETTING] General>Language and Appearance>Language>Choose your preferred language...
- * [TEST] https://addons.mozilla.org/about ***/
-user_pref("intl.accept_languages", "en-US, en");
-/* 0211: use en-US locale regardless of the system or region locale
- * [SETUP-WEB] May break some input methods e.g xim/ibus for CJK languages [1]
- * [1] https://bugzilla.mozilla.org/buglist.cgi?bug_id=867501,1629630 ***/
-user_pref("javascript.use_us_english_locale", true); // [HIDDEN PREF]
-
-/*** [SECTION 0300]: QUIETER FOX ***/
-user_pref("_user.js.parrot", "0300 syntax error: the parrot's not pinin' for the fjords!");
-/** RECOMMENDATIONS ***/
-/* 0320: disable recommendation pane in about:addons (uses Google Analytics) ***/
-user_pref("extensions.getAddons.showPane", false); // [HIDDEN PREF]
-/* 0321: disable recommendations in about:addons' Extensions and Themes panes [FF68+] ***/
-user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);
-/* 0322: disable personalized Extension Recommendations in about:addons and AMO [FF65+]
- * [NOTE] This pref has no effect when Health Reports (0331) are disabled
- * [SETTING] Privacy & Security>Firefox Data Collection & Use>Allow Firefox to make personalized extension recommendations
- * [1] https://support.mozilla.org/kb/personalized-extension-recommendations ***/
-user_pref("browser.discovery.enabled", false);
+user_pref("geo.provider.ms-windows-location", false); // WINDOWS
+user_pref("geo.provider.use_corelocation", false); // MAC
+user_pref("geo.provider.use_gpsd", false); // LINUX
+user_pref("geo.provider.use_geoclue", false); // LINUX
+user_pref("permissions.manager.defaultsUrl", "");
+user_pref("webchannel.allowObject.urlWhitelist", "");
 
 /** TELEMETRY ***/
-/* 0330: disable new data submission [FF41+]
- * If disabled, no policy is shown or upload takes place, ever
- * [1] https://bugzilla.mozilla.org/1195552 ***/
-user_pref("datareporting.policy.dataSubmissionEnabled", false);
-/* 0331: disable Health Reports
- * [SETTING] Privacy & Security>Firefox Data Collection & Use>Allow Firefox to send technical... data ***/
-user_pref("datareporting.healthreport.uploadEnabled", false);
-/* 0332: disable telemetry
- * The "unified" pref affects the behavior of the "enabled" pref
- * - If "unified" is false then "enabled" controls the telemetry module
- * - If "unified" is true then "enabled" only controls whether to record extended data
- * [NOTE] "toolkit.telemetry.enabled" is now LOCKED to reflect prerelease (true) or release builds (false) [2]
- * [1] https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/internals/preferences.html
- * [2] https://medium.com/georg-fritzsche/data-preference-changes-in-firefox-58-2d5df9c428b5 ***/
 user_pref("toolkit.telemetry.unified", false);
-user_pref("toolkit.telemetry.enabled", false); // see [NOTE]
+user_pref("toolkit.telemetry.enabled", false);
 user_pref("toolkit.telemetry.server", "data:,");
 user_pref("toolkit.telemetry.archive.enabled", false);
-user_pref("toolkit.telemetry.newProfilePing.enabled", false); // [FF55+]
-user_pref("toolkit.telemetry.shutdownPingSender.enabled", false); // [FF55+]
-user_pref("toolkit.telemetry.updatePing.enabled", false); // [FF56+]
-user_pref("toolkit.telemetry.bhrPing.enabled", false); // [FF57+] Background Hang Reporter
-user_pref("toolkit.telemetry.firstShutdownPing.enabled", false); // [FF57+]
-/* 0333: disable Telemetry Coverage
- * [1] https://blog.mozilla.org/data/2018/08/20/effectively-measuring-search-in-firefox/ ***/
-user_pref("toolkit.telemetry.coverage.opt-out", true); // [HIDDEN PREF]
-user_pref("toolkit.coverage.opt-out", true); // [FF64+] [HIDDEN PREF]
-user_pref("toolkit.coverage.endpoint.base", "");
-/* 0334: disable PingCentre telemetry (used in several System Add-ons) [FF57+]
- * Defense-in-depth: currently covered by 0331 ***/
+user_pref("toolkit.telemetry.newProfilePing.enabled", false);
+user_pref("toolkit.telemetry.shutdownPingSender.enabled", false);
+user_pref("toolkit.telemetry.updatePing.enabled", false);
+user_pref("toolkit.telemetry.bhrPing.enabled", false);
+user_pref("toolkit.telemetry.firstShutdownPing.enabled", false);
+user_pref("toolkit.telemetry.coverage.opt-out", true);
+user_pref("toolkit.coverage.opt-out", true);
+user_pref("datareporting.healthreport.uploadEnabled", false);
+user_pref("datareporting.policy.dataSubmissionEnabled", false);
+user_pref("app.shield.optoutstudies.enabled", false);
+user_pref("browser.discovery.enabled", false);
+user_pref("breakpad.reportURL", "");
+user_pref("browser.tabs.crashReporting.sendReport", false);
+user_pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false);
+user_pref("captivedetect.canonicalURL", "");
+user_pref("network.captive-portal-service.enabled", false);
+user_pref("network.connectivity-service.enabled", false);
+user_pref("default-browser-agent.enabled", false);
+user_pref("app.normandy.enabled", false);
+user_pref("app.normandy.api_url", "");
 user_pref("browser.ping-centre.telemetry", false);
-/* 0335: disable Firefox Home (Activity Stream) telemetry ***/
 user_pref("browser.newtabpage.activity-stream.feeds.telemetry", false);
 user_pref("browser.newtabpage.activity-stream.telemetry", false);
 
-/** STUDIES ***/
-/* 0340: disable Studies
- * [SETTING] Privacy & Security>Firefox Data Collection & Use>Allow Firefox to install and run studies ***/
-user_pref("app.shield.optoutstudies.enabled", false);
-/* 0341: disable Normandy/Shield [FF60+]
- * Shield is a telemetry system that can push and test "recipes"
- * [1] https://mozilla.github.io/normandy/ ***/
-user_pref("app.normandy.enabled", false);
-user_pref("app.normandy.api_url", "");
+/****************************************************************************
+ * SECTION: PESKYFOX                                                        *
+****************************************************************************/
+/** MOZILLA UI ***/
+user_pref("layout.css.prefers-color-scheme.content-override", 2);
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("app.update.suppressPrompts", true);
+user_pref("browser.compactmode.show", true);
+user_pref("browser.privatebrowsing.vpnpromourl", "");
+user_pref("extensions.getAddons.showPane", false);
+user_pref("extensions.htmlaboutaddons.recommendations.enabled", false);
+user_pref("browser.shell.checkDefaultBrowser", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.addons", false);
+user_pref("browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features", false);
+user_pref("browser.preferences.moreFromMozilla", false);
+user_pref("browser.tabs.tabmanager.enabled", false);
+user_pref("browser.aboutwelcome.enabled", false);
+user_pref("findbar.highlightAll", true);
+user_pref("middlemouse.contentLoadURL", false);
+user_pref("browser.privatebrowsing.enable-new-indicator", false);
 
-/** CRASH REPORTS ***/
-/* 0350: disable Crash Reports ***/
-user_pref("breakpad.reportURL", "");
-user_pref("browser.tabs.crashReporting.sendReport", false); // [FF44+]
-   // user_pref("browser.crashReports.unsubmittedCheck.enabled", false); // [FF51+] [DEFAULT: false]
-/* 0351: enforce no submission of backlogged Crash Reports [FF58+]
- * [SETTING] Privacy & Security>Firefox Data Collection & Use>Allow Firefox to send backlogged crash reports  ***/
-user_pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false); // [DEFAULT: false]
+/** FULLSCREEN ***/
+user_pref("full-screen-api.transition-duration.enter", "0 0");
+user_pref("full-screen-api.transition-duration.leave", "0 0");
+user_pref("full-screen-api.warning.delay", -1);
+user_pref("full-screen-api.warning.timeout", 0);
 
-/** OTHER ***/
-/* 0360: disable Captive Portal detection
- * [1] https://www.eff.org/deeplinks/2017/08/how-captive-portals-interfere-wireless-security-and-privacy ***/
-user_pref("captivedetect.canonicalURL", "");
-user_pref("network.captive-portal-service.enabled", false); // [FF52+]
-/* 0361: disable Network Connectivity checks [FF65+]
- * [1] https://bugzilla.mozilla.org/1460537 ***/
-user_pref("network.connectivity-service.enabled", false);
+/** URL BAR ***/
+user_pref("browser.urlbar.suggest.engines", false);
+user_pref("browser.urlbar.suggest.topsites", false);
+user_pref("browser.urlbar.suggest.calculator", true);
+user_pref("browser.urlbar.unitConversion.enabled", true);
 
-/*** [SECTION 0400]: SAFE BROWSING (SB)
-   SB has taken many steps to preserve privacy. If required, a full url is never sent
-   to Google, only a part-hash of the prefix, hidden with noise of other real part-hashes.
-   Firefox takes measures such as stripping out identifying parameters and since SBv4 (FF57+)
-   doesn't even use cookies. (#Turn on browser.safebrowsing.debug to monitor this activity)
+/** NEW TAB PAGE ***/
+user_pref("browser.newtabpage.activity-stream.feeds.topsites", false);
+user_pref("browser.newtabpage.activity-stream.feeds.section.topstories", false);
 
-   [1] https://feeding.cloud.geek.nz/posts/how-safe-browsing-works-in-firefox/
-   [2] https://wiki.mozilla.org/Security/Safe_Browsing
-   [3] https://support.mozilla.org/kb/how-does-phishing-and-malware-protection-work
-   [4] https://educatedguesswork.org/posts/safe-browsing-privacy/
-***/
-user_pref("_user.js.parrot", "0400 syntax error: the parrot's passed on!");
-/* 0401: disable SB (Safe Browsing)
- * [WARNING] Do this at your own risk! These are the master switches
- * [SETTING] Privacy & Security>Security>... Block dangerous and deceptive content ***/
-   // user_pref("browser.safebrowsing.malware.enabled", false);
-   // user_pref("browser.safebrowsing.phishing.enabled", false);
-/* 0402: disable SB checks for downloads (both local lookups + remote)
- * This is the master switch for the safebrowsing.downloads* prefs (0403, 0404)
- * [SETTING] Privacy & Security>Security>... "Block dangerous downloads" ***/
-   // user_pref("browser.safebrowsing.downloads.enabled", false);
-/* 0403: disable SB checks for downloads (remote)
- * To verify the safety of certain executable files, Firefox may submit some information about the
- * file, including the name, origin, size and a cryptographic hash of the contents, to the Google
- * Safe Browsing service which helps Firefox determine whether or not the file should be blocked
- * [SETUP-SECURITY] If you do not understand this, or you want this protection, then override this ***/
-user_pref("browser.safebrowsing.downloads.remote.enabled", false);
-   // user_pref("browser.safebrowsing.downloads.remote.url", ""); // Defense-in-depth
-/* 0404: disable SB checks for unwanted software
- * [SETTING] Privacy & Security>Security>... "Warn you about unwanted and uncommon software" ***/
-   // user_pref("browser.safebrowsing.downloads.remote.block_potentially_unwanted", false);
-   // user_pref("browser.safebrowsing.downloads.remote.block_uncommon", false);
-/* 0405: disable "ignore this warning" on SB warnings [FF45+]
- * If clicked, it bypasses the block for that session. This is a means for admins to enforce SB
- * [TEST] see https://github.com/arkenfox/user.js/wiki/Appendix-A-Test-Sites#-mozilla
- * [1] https://bugzilla.mozilla.org/1226490 ***/
-   // user_pref("browser.safebrowsing.allowOverride", false);
+/*** POCKET ***/
+user_pref("extensions.pocket.enabled", false);
+
+/** DOWNLOADS ***/
+user_pref("browser.download.useDownloadDir", true);
+user_pref("browser.download.alwaysOpenPanel", false);
+user_pref("browser.download.manager.addToRecentDocs", false);
+user_pref("browser.download.always_ask_before_handling_new_types", true);
+
+/** PDF ***/
+user_pref("browser.download.open_pdf_attachments_inline", true);
+
+/** TAB BEHAVIOR ***/
+user_pref("browser.tabs.loadBookmarksInTabs", true);
+user_pref("browser.bookmarks.openInTabClosesMenu", false);
+user_pref("layout.css.has-selector.enabled", true);
+user_pref("cookiebanners.service.mode", 2);
+user_pref("cookiebanners.service.mode.privateBrowsing", 2);
+
+/****************************************************************************
+ * SECTION: SMOOTHFOX                                                       *
+****************************************************************************/
+// visit https://github.com/yokoffing/Betterfox/blob/master/Smoothfox.js
+// Enter your scrolling prefs below this line:
 
 /****************************************************************************
  * START: MY OVERRIDES                                                      *
 ****************************************************************************/
-/** Forcing DOH servers
-user_pref("network.trr.uri", "https://doh3.dns.nextdns.io/b7b3b7");
-user_pref("network.trr.custom_uri", "https://doh3.dns.nextdns.io/b7b3b7");
-user_pref("network.trr.default_provider_uri", " https://doh3.dns.nextdns.io/b7b3b7");
-**/
+// Enter your personal prefs below this line:
 user_pref("network.trr.mode", 3);
 user_pref("network.trr.disable-ECS", false);
 // Enable QUICv2 (Only applied to NextDNS)
@@ -175,3 +284,14 @@ user_pref("network.early-hints.preconnect.enabled", true);
 user_pref("network.early-hints.preconnect.max_connections", 20);
 // Enable PunyCode
 user_pref("network.IDN_show_punycode", true);
+
+/* Default rules */
+user_pref("toolkit.legacyUserProfileCustomizations.stylesheets", true);
+user_pref("svg.context-properties.content.enabled", true); 
+user_pref("layout.css.color-mix.enabled", true);
+user_pref("browser.tabs.delayHidingAudioPlayingIconMS", 0);
+user_pref("layout.css.backdrop-filter.enabled", true);
+user_pref("browser.newtabpage.activity-stream.improvesearch.handoffToAwesomebar", false);
+/****************************************************************************
+ * END: BETTERFOX                                                           *
+****************************************************************************/
