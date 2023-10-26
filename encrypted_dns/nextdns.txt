@@ -25,3 +25,5 @@
 - Trẻ em/Kids (52ac62): Bộ lọc bao gồm NextDNS, Adguard DNS, hostsVN; bật Safe search; Bật chặn pỏn/gambling/dating
 + iOS: https://tinyurl.com/2f8ncywf
 + Andoird: 52ac62.dns.nextdns.io
+
+EDNS Viettel: 27.71.24.1
