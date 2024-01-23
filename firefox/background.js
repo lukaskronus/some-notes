@@ -11,7 +11,7 @@
     var Gr1 = 240; // R value in RGB
     var Gg1 = 240; // G value in RGB
     var Gb1 = 240; // B value in RGB
-    var color = "#fff5c4"; // Changed background color
+    var color = "#f6ecd3"; // Changed background color
 
     var Gr, Gg, Gb; // Global variables to record the current tag's RGB values for comparison
 
