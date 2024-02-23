@@ -12,6 +12,7 @@
     var Gg1 = 240; // G value in RGB
     var Gb1 = 240; // B value in RGB
     var color = "#f6ecd3"; // Changed background color
+    // There are other options: #d1daca or #d1e0c8 for Eye-protection Color and #c1c1c1 or #cccccc for Night View Color
 
     var Gr, Gg, Gb; // Global variables to record the current tag's RGB values for comparison
 
