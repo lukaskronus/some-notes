@@ -1,0 +1,14 @@
+services:
+  rclone:
+    image: rclone/rclone:latest
+    container_name: rclone
+    restart: unless-stopped
+    command: "serve webdav /path/to/directory --addr=<container's IP>:<port> --user=<username> --pass=<password>"
+    # command: "rcd --rc-web-gui --rc-user=<username> --rc-pass=<password> --rc-addr=<container's IP>:<port>"
+    volumes:
+      - $PWD/config:/config/rclone # rclone.conf location
+      - $PWD/data:/data
+    environment:
+      - PHP_TZ=Asia/Ho_Chi_Minh
+      - PUID=1001
+      - PGID=1001
