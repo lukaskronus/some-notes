@@ -1,0 +1,19 @@
+services:
+  tailscale:
+    container_name: tailscale
+    hostname: tailscale-opr1
+    network_mode: host
+    image: tailscale/tailscale:v1.66
+    volumes:
+      - $PWD:/var/lib # State data will be stored in this directory
+      - /dev/net/tun:/dev/net/tun # Required for tailscale to work
+    cap_add: # Required for tailscale to work
+      - net_admin
+      - sys_module
+    privileged: true
+    restart: unless-stopped
+    environment:
+      TS_AUTHKEY: ""
+      TS_EXTRA_ARGS: ""
+      TS_ROUTES: ""
+      TS_USERSPACE: "0" # Some VPS requires Userspace to work
