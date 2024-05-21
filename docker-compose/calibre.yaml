@@ -1,0 +1,28 @@
+services:
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    container_name: calibre
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - $PWD/config:/config
+      - /mnt/block-volume/Ebooks:/books
+    restart: unless-stopped
+  
+  calibre-web:
+    depends_on: [calibre] 
+    image: lscr.io/linuxserver/calibre-web:latest
+    container_name: calibre-web
+    environment:
+      - PUID=1001
+      - PGID=1001
+      - TZ=Asia/Ho_Chi_Minh
+      - OAUTHLIB_RELAX_TOKEN_SCOPE=1
+    volumes:
+      - $PWD/config:/config
+      - $PWD/config/calibre:/books
+    restart: unless-stopped
