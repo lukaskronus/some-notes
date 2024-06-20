@@ -42,7 +42,8 @@ async function scheduleStream(auth) {
           scheduledStartTime: startTime
         },
         status: {
-          privacyStatus: 'public'
+          privacyStatus: 'unlisted',  // Set the privacy status to unlisted
+          selfDeclaredMadeForKids: false  // Set the stream as not made for kids
         },
         contentDetails: {
           enableAutoStart: true,
