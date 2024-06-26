@@ -5,6 +5,7 @@ docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Eb
 docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" gdrive:Ebooks/ -P --ignore-existing --track-renames --fix-case --server-side-across-configs --check-first
 docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" /data/Ebooks -P --ignore-existing --track-renames --fix-case --server-side-across-configs --check-first
 
+rclone sync --config /mnt/apps/apps/rclone/rclone.config ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" --exclude DISSERTION/ /mnt/NAS-BiTi/library --check-first -P --ignore-existing --track-renames --checkers=16 --transfers=8
 
 # check data from source and destinations
 docker exec -it rclone rclone size ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks"
