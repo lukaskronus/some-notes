@@ -1,20 +1,16 @@
-#!/bin/bash
+#!/bin/sh
 
-# rclone sync to destinations
-docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" onedrive:Ebooks/Requested/"Anh Thuyen Ebooks" -P --ignore-existing --track-renames --fix-case --server-side-across-configs --check-first
-docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" gdrive:Ebooks/ -P --ignore-existing --track-renames --fix-case --server-side-across-configs --check-first
-docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" /data/Ebooks -P --ignore-existing --track-renames --fix-case --server-side-across-configs --check-first
+# Sync data to OneDrive 5TB and VPS
+docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Library onedrive:Shared/Ebooks/Library -P --check-first --ignore-existing --track-renames --fix-case --server-side-across-configs --checkers=16 --transfers=8
+docker exec -it rclone rclone sync ubytxh:Shared/Ebooks/Library /data/Ebooks -P --check-first --ignore-existing --track-renames --fix-case --server-side-across-configs --checkers=16 --transfers=8
 
-rclone sync --config /mnt/apps/apps/rclone/rclone.config ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks" --exclude DISSERTION/ /mnt/NAS-BiTi/library --check-first -P --ignore-existing --track-renames --checkers=16 --transfers=8
+# In case there is an error, can use args --checksum
+# If using Google Colab, args -P is not necessary. Instead, use -vvvv to output.
+# Change default config file location by using --config /path/to/config/rclone.conf
 
-# check data from source and destinations
-docker exec -it rclone rclone size ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks"
-docker exec -it rclone rclone size onedrive:Ebooks/Requested/"Anh Thuyen Ebooks"
+# Check data
+docker exec -it rclone rclone size ubytxh:Shared/Ebooks/Library
+docker exec -it rclone rclone size onedrive:Shared/Ebooks/Library
 docker exec -it rclone rclone size /data/Ebooks
-docker exec -it rclone rclone size gdrive:Ebooks/
 
-# check path
-docker exec -it rclone rclone lsd ubytxh:Shared/Ebooks/Requested/"Anh Thuyen Ebooks"
-docker exec -it rclone rclone lsd onedrive:Ebooks/Requested/"Anh Thuyen Ebooks"
-docker exec -it rclone rclone lsd /data/Ebooks
-docker exec -it rclone rclone lsd gdrive:Ebooks/
+exit 0
