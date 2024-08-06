@@ -1,0 +1,33 @@
+! For MD addon, no banner to Obsidian
+docln.net##[target="_blank"]
+docln.net##[target="__blank"]
+docln.net##div[class="title-top"]
+
+! >> uBlock filters - Annoyances should remove Suggested posts without a need for additional filters <<
+! Suggested for you
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])) div:not(:only-child)>div:only-child>div:only-child>div:first-child[class=""]>div:not([data-0]):has-text(/^Suggested/):upward([aria-posinset],[aria-describedby]:not([aria-posinset])):style(height: 0 !important; overflow: hidden !important;)
+! Unlabelled Suggested posts (with a Follow/Join buttons)
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])) :is(h3,h4) [role=button]:has-text(/Follow|Join/):upward([aria-posinset],[aria-describedby]:not([aria-posinset])):style(height: 0 !important; overflow: hidden !important;)
+! Use only if you actually have these: Suggested posts with the label next to the post date
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):has-text(Suggested for you):style(height: 0 !important; overflow: hidden !important;)
+
+! People You May Know
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):has([href="/friends/"]):style(height: 0 !important; overflow: hidden !important;)
+! Suggested groups
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):has([href="/groups/discover/"]):style(height: 0 !important; overflow: hidden !important;)
+! Reels and short videos
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):has([href="/reel/?s=ifu_see_more"]):style(height: 0 !important; overflow: hidden !important;)
+! Suggested pages
+www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):has([aria-label="Suggested pages"]):style(height: 0 !important; overflow: hidden !important;)
+
+! Facebook Craps
+!#if cap_html_filtering
+||www.facebook.com/api/graphql/$xhr,replace=/\{"brs_content_label":[^\n]+?"category":"ENGAGEMENT[^\n]+?"cursor":"[^"]+"\}/{}/g
+!#else
+www.facebook.com##+js(trusted-replace-xhr-response, /\{"brs_content_label":[^\n]+?"category":"ENGAGEMENT[^\n]+?"cursor":"[^"]+"\}/g, {}, /api/graphql)
+!#endif
+
+! Block serviceWorkers
+! Whitelist example
+! *$csp=worker-src 'none',domain=~example1.com|~example2.com
+*$csp=worker-src 'none'
