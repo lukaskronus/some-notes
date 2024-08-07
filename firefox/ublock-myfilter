@@ -27,7 +27,4 @@ www.facebook.com##:is([aria-posinset],[aria-describedby]:not([aria-posinset])):h
 www.facebook.com##+js(trusted-replace-xhr-response, /\{"brs_content_label":[^\n]+?"category":"ENGAGEMENT[^\n]+?"cursor":"[^"]+"\}/g, {}, /api/graphql)
 !#endif
 
-! Block serviceWorkers
-! Whitelist example
-! *$csp=worker-src 'none',domain=~example1.com|~example2.com
-*$csp=worker-src 'none'
+! Turn off service Workers in about:config by dom.serviceWorkers.enable set to false
