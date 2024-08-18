@@ -1,0 +1,2 @@
+# For mobile version
+Opera/12.02 (Android 4.1; Linux; Opera Mobi/ADR-1111101157; U; en-US; Mediapartners-Google) Presto/2.9.201 Version/12.02
