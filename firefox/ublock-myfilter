@@ -28,3 +28,6 @@ www.facebook.com##+js(trusted-replace-xhr-response, /\{"brs_content_label":[^\n]
 !#endif
 
 ! Turn off service Workers in about:config by dom.serviceWorkers.enable set to false
+
+! Block heavy CSS codes
+*##*:style(border-radius:unset!important;box-shadow:unset!important;text-shadow:unset!important;text-transform:unset!important;animation-iteration-count:1!important;scroll-behavior:unset!important;moz-animation-iteration-count:1!important;webkit-animation-iteration-count:1!important;backdrop-filter:unset!important;filter:unset!important;animation-timing-function:step-start!important;transition-timing-function:step-start!important;filter:none!important;text-rendering:none!important;clip-path:unset!important)
