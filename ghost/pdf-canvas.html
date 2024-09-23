@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, minimum-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist/build/pdf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist/build/pdf.worker.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        #pdf-canvas {
+            border: 1px solid black;
+            width: 100%;
+            max-width: 800px; /* Adjust based on your design */
+            height: auto; /* Let the height adjust automatically */
+            margin-bottom: 10px;
+        }
+        @media (max-width: 500px) {
+            #pdf-canvas {
+                max-width: 100%; /* Full width on smaller screens */
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pdf-canvas"></canvas>
+    <div style="text-align: center;">
+        <span>Page: <span id="page-num">1</span> / <span id="page-count">0</span></span>
+    </div>
+    
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist/build/pdf.worker.js';
+
+        const url = 'your-pdf-file'; // Replace with your PDF URL
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+        
+        function renderPage(num) {
+            pdfDoc.getPage(num).then(page => {
+                const scale = calculateScale();
+                const viewport = page.getViewport({ scale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: context,
+                    viewport: viewport,
+                };
+                page.render(renderContext).promise.then(() => {
+                    document.getElementById('page-num').textContent = num;
+                });
+            });
+        }
+
+        function calculateScale() {
+            const width = canvas.clientWidth;
+            const height = (width * 11) / 8.5; // US Letter aspect ratio
+            return width / 800; // 800 is the width of US Letter in pixels at 100% scale
+        }
+
+        const loadingTask = pdfjsLib.getDocument(url);
+        loadingTask.promise.then(pdf => {
+            pdfDoc = pdf;
+            document.getElementById('page-count').textContent = pdf.numPages;
+            renderPage(pageNum);
+        }, reason => {
+            console.error(reason);
+        });
+
+        // Keyboard navigation
+        window.addEventListener('keydown', (event) => {
+            if (event.key === 'ArrowRight') {
+                if (pageNum < pdfDoc.numPages) {
+                    pageNum++;
+                    renderPage(pageNum);
+                }
+            } else if (event.key === 'ArrowLeft') {
+                if (pageNum > 1) {
+                    pageNum--;
+                    renderPage(pageNum);
+                }
+            }
+        });
+
+        // Touch gestures for mobile navigation
+        let startY;
+
+        // Touch start to capture the initial position
+        canvas.addEventListener('touchstart', (event) => {
+            startY = event.touches[0].clientY;
+        });
+
+        // Touch move to detect swipe gestures
+        canvas.addEventListener('touchmove', (event) => {
+            const touchY = event.touches[0].clientY;
+            const diffY = startY - touchY;
+
+            // Prevent default behavior (like scrolling)
+            event.preventDefault();
+
+            // Vertical swipe: Swipe down for next page
+            if (diffY < -10 && pageNum < pdfDoc.numPages) {
+                pageNum++;
+                renderPage(pageNum);
+                startY = touchY; // Update startY for continuous swiping
+            }
+            // Vertical swipe: Swipe up for previous page
+            else if (diffY > 10 && pageNum > 1) {
+                pageNum--;
+                renderPage(pageNum);
+                startY = touchY; // Update startY for continuous swiping
+            }
+        });
+
+        // Touch borders for navigation
+        canvas.addEventListener('touchstart', (event) => {
+            const touchX = event.touches[0].clientX;
+            const canvasWidth = canvas.clientWidth;
+
+            // Detect touch near left border
+            if (touchX < canvasWidth * 0.1 && pageNum > 1) {
+                pageNum--;
+                renderPage(pageNum);
+            }
+            // Detect touch near right border
+            else if (touchX > canvasWidth * 0.9 && pageNum < pdfDoc.numPages) {
+                pageNum++;
+                renderPage(pageNum);
+            }
+        });
+    </script>
+</body>
+</html>
