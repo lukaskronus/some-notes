@@ -1,0 +1,52 @@
+<style>
+  .pdfobject-container {
+    width: 100%;
+    max-width: 612px;
+    height: min(100vh - 20px, 792px);
+    border: 1px solid #ccc;
+    margin: auto;
+    overflow: hidden;
+  }
+
+  @media (max-width: 612px) {
+    .pdfobject-container {
+      height: auto;
+      aspect-ratio: 8.5 / 11;
+    }
+  }
+</style>
+
+<div class="pdfobject-container">
+  <iframe id="pdfObject" src="https://docs.google.com/viewer?embedded=true&url=" width="100%" height="100%" style="border:none;" sandbox="allow-same-origin allow-scripts">
+    <p id="errorMessage">If the content does not show up, the resource may not be available. Please <a href="javascript:location.reload()">reload the page</a>.</p>
+  </iframe>
+  <div id="retryMessage" style="display:none;"></div>
+</div>
+
+<script>
+  const pdfObject = document.getElementById('pdfObject');
+  const errorMessage = document.getElementById('errorMessage');
+  const retryMessage = document.getElementById('retryMessage');
+
+  let attempts = 0;
+  const maxAttempts = 5;
+
+  function loadPDF() {
+    attempts++;
+    pdfObject.src = pdfObject.src; // Reload the PDF
+
+    if (attempts >= maxAttempts) {
+      clearInterval(retryInterval);
+      errorMessage.textContent = "The PDF could not be loaded. Please check the URL or try again later.";
+      retryMessage.style.display = 'block';
+    }
+  }
+
+  pdfObject.onerror = function() {
+    if (attempts < maxAttempts) {
+      retryMessage.textContent = `Attempting to reload... (${attempts}/${maxAttempts})`;
+      retryMessage.style.display = 'block';
+      setTimeout(loadPDF, 2000); // Retry loading after 2 seconds
+    }
+  };
+</script>
