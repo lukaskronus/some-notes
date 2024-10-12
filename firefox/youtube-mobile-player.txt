@@ -74,3 +74,4 @@ m.youtube.com##.interactive-tabbed-header-banner-overlay,.mealbar-promo-renderer
 
 ! Force H.264 codec
 www.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
+m.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
