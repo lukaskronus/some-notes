@@ -71,3 +71,6 @@ m.youtube.com##ytm-shelf-renderer.vertical-shelf-separators:style(border-top-wid
 m.youtube.com##.engagement-panel-section-list-header,ytm-comments-header-renderer,ytm-compact-channel-renderer,ytm-item-section-renderer,ytm-shelf-renderer:style(border-color:rgba(50%,50%,50%,.5)!important)
 m.youtube.com##ytm-sign-in-promo-with-background-renderer ytm-promo:style(min-height:calc(100vh - 48px)!important)
 m.youtube.com##.interactive-tabbed-header-banner-overlay,.mealbar-promo-renderer,.pivot-shorts,.ytp-paid-content-overlay,ytm-clarification-renderer,ytm-companion-ad-renderer,ytm-info-panel-container-renderer,ytm-promoted-sparkles-text-search-renderer,ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,ytm-reel-shelf-renderer,ytm-watch-metadata-app-promo-renderer:style(display:none!important)
+
+! Force H.264 codec
+www.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
