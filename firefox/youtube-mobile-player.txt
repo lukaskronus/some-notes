@@ -73,5 +73,6 @@ m.youtube.com##ytm-sign-in-promo-with-background-renderer ytm-promo:style(min-he
 m.youtube.com##.interactive-tabbed-header-banner-overlay,.mealbar-promo-renderer,.pivot-shorts,.ytp-paid-content-overlay,ytm-clarification-renderer,ytm-companion-ad-renderer,ytm-info-panel-container-renderer,ytm-promoted-sparkles-text-search-renderer,ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,ytm-reel-shelf-renderer,ytm-watch-metadata-app-promo-renderer:style(display:none!important)
 
 ! Force H.264 codec
-www.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
-m.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
+! Not working in filterlists
+! youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
+
