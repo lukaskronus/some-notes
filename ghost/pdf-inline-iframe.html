@@ -17,7 +17,7 @@
 </style>
 
 <div class="pdfobject-container">
-  <iframe id="pdfObject" src="https://docs.google.com/viewer?embedded=true&url=" width="100%" height="100%" style="border:none;" sandbox="allow-same-origin allow-scripts">
+  <iframe id="pdfObject" src="" width="100%" height="100%" style="border:none;" sandbox="allow-same-origin allow-scripts">
     <p id="errorMessage">If the content does not show up, the resource may not be available. Please <a href="javascript:location.reload()">reload the page</a>.</p>
   </iframe>
   <div id="retryMessage" style="display:none;"></div>
@@ -31,22 +31,49 @@
   let attempts = 0;
   const maxAttempts = 5;
 
-  function loadPDF() {
-    attempts++;
-    pdfObject.src = pdfObject.src; // Reload the PDF
+  // Base64-encoded PDF URL (replace this with your actual Base64-encoded URL)
+  const base64Url = '';
 
-    if (attempts >= maxAttempts) {
-      clearInterval(retryInterval);
-      errorMessage.textContent = "The PDF could not be loaded. Please check the URL or try again later.";
+  // Decode Base64 URL
+  const decodedUrl = atob(base64Url);
+
+  const pdfUrl = encodeURIComponent(decodedUrl); // Ensure PDF URL is URL-encoded
+  
+  const viewerUrl = `https://docs.google.com/viewer?embedded=true&url=${pdfUrl}`;
+
+  // Function to load the PDF from the URL
+  function loadPDF() {
+    pdfObject.src = viewerUrl; // Set the iframe source to the Google Docs Viewer URL
+    retryMessage.style.display = 'none'; // Hide retry message on first load
+
+    // Try loading the PDF a number of times before showing error message
+    attempts++;
+    if (attempts < maxAttempts) {
+      retryMessage.textContent = `Attempting to reload... (${attempts}/${maxAttempts})`;
       retryMessage.style.display = 'block';
+      setTimeout(() => {
+        if (!pdfObject.contentWindow.document.body) { // Check if content is loaded
+          loadPDF();
+        }
+      }, 2000); // Retry after 2 seconds
+    } else {
+      errorMessage.textContent = "The PDF could not be loaded. Please check the URL or try again later.";
+      retryMessage.style.display = 'none';
     }
   }
 
+  // Set iframe source and try loading PDF
+  loadPDF();
+
+  // Catch iframe load error
   pdfObject.onerror = function() {
     if (attempts < maxAttempts) {
       retryMessage.textContent = `Attempting to reload... (${attempts}/${maxAttempts})`;
       retryMessage.style.display = 'block';
       setTimeout(loadPDF, 2000); // Retry loading after 2 seconds
+    } else {
+      errorMessage.textContent = "The PDF could not be loaded. Please check the URL or try again later.";
+      retryMessage.style.display = 'none';
     }
   };
 </script>
