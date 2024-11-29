@@ -95,7 +95,7 @@
     const imageInput = document.getElementById("imageInput");
 
     // Get the total number of slides dynamically
-    const totalSlides = document.querySelectorAll(".glide__slide").length / 2;
+    const totalSlides = Math.floor(document.querySelectorAll(".glide__slide").length / 2);
 
     // Event listeners for navigation
     prevButton.addEventListener("click", () => glide.go("<"));
