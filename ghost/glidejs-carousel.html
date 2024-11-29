@@ -71,7 +71,7 @@
   <div class="glide-controls">
     <button id="prevButton">Previous</button>
     <input id="imageInput" type="text" value="1" placeholder="1">
-    <button id="goButton">Go</button>
+    <button id="goButton">Goto</button>
     <button id="nextButton">Next</button>
   </div>
 
@@ -95,7 +95,7 @@
     const imageInput = document.getElementById("imageInput");
 
     // Get the total number of slides dynamically
-    const totalSlides = document.querySelectorAll(".glide__slide").length;
+    const totalSlides = document.querySelectorAll(".glide__slide").length / 2;
 
     // Event listeners for navigation
     prevButton.addEventListener("click", () => glide.go("<"));
