@@ -52,21 +52,9 @@
 <body>
   <div class="glide">
     <div class="glide__track" data-glide-el="track">
-      <div class="glide__slides">
-        <div class="glide__slide">
-          <img src="https://i.imgur.com/C5XhZH2.jpeg">
-        </div>
-        <div class="glide__slide">
-          <img src="https://i.imgur.com/DOtUmdW.jpeg">
-        </div>
-        <div class="glide__slide">
-          <img src="https://i.imgur.com/mD7ICEF.jpeg">
-        </div>
-        <div class="glide__slide">
-          <img src="https://i.imgur.com/wLBNYES.png">
-        </div>
-      </div>
+      <div class="glide__slides" id="slidesContainer"></div>
     </div>
+  </div>
 
   <div class="glide-controls">
     <button id="prevButton">Previous</button>
@@ -77,6 +65,28 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/glide.min.js"></script>
   <script>
+    // Store all image links in a single array
+    const imageLinks = [
+      "https://i.imgur.com/C5XhZH2.jpeg",
+      "https://i.imgur.com/DOtUmdW.jpeg",
+      "https://i.imgur.com/mD7ICEF.jpeg",
+      "https://i.imgur.com/wLBNYES.png"
+      // Add more links here
+    ];
+
+    // Dynamically generate the slides based on the array of image links
+    const slidesContainer = document.getElementById("slidesContainer");
+
+    imageLinks.forEach(link => {
+      const slide = document.createElement("div");
+      slide.classList.add("glide__slide");
+      const img = document.createElement("img");
+      img.src = link;
+      slide.appendChild(img);
+      slidesContainer.appendChild(slide);
+    });
+
+    // Initialize the Glide.js carousel
     const glide = new Glide(".glide", {
       type: "carousel",
       startAt: 0,
@@ -94,8 +104,8 @@
     const goButton = document.getElementById("goButton");
     const imageInput = document.getElementById("imageInput");
 
-    // Get the total number of slides dynamically
-    const totalSlides = Math.floor(document.querySelectorAll(".glide__slide").length / 2);
+    // Get the total number of slides dynamically based on the imageLinks array
+    const totalSlides = imageLinks.length;
 
     // Event listeners for navigation
     prevButton.addEventListener("click", () => glide.go("<"));
