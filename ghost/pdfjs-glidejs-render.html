@@ -1,0 +1,146 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
+  <style>
+    .glide {
+      position: relative;
+      width: 100%;
+      height: auto;
+      margin: 0;
+      display: none; /* Initially hide the carousel */
+    }
+
+    .glide__slide {
+      position: relative;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+
+    .glide__slide canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .glide-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .glide-controls input {
+      width: 50px;
+      text-align: center;
+    }
+</style>
+<body>
+  <div class="glide">
+    <div class="glide__track" data-glide-el="track">
+      <div class="glide__slides" id="slidesContainer"></div>
+    </div>
+  </div>
+
+  <div class="glide-controls">
+    <button id="prevButton">Previous</button>
+    <input id="imageInput" type="text" value="1" placeholder="1">
+    <button id="goButton">Goto</button>
+    <button id="nextButton">Next</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/glide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+  <script>
+    const pdfUrl = 'YOUR-PDF-URL'; // Replace with your PDF URL
+
+    // Function to render PDF pages as images
+    async function renderPDF() {
+      const pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+      const slidesContainer = document.getElementById('slidesContainer');
+
+      // Render the first page immediately
+      const firstPage = await pdf.getPage(1);
+      const firstViewport = firstPage.getViewport({ scale: 1.5 });
+      const firstCanvas = document.createElement('canvas');
+      firstCanvas.classList.add('glide__slide');
+      firstCanvas.width = firstViewport.width;
+      firstCanvas.height = firstViewport.height;
+
+      const firstContext = firstCanvas.getContext('2d');
+      const firstRenderContext = {
+        canvasContext: firstContext,
+        viewport: firstViewport
+      };
+
+      await firstPage.render(firstRenderContext).promise;
+      slidesContainer.appendChild(firstCanvas);
+
+      // Show the carousel after rendering the first page
+      document.querySelector('.glide').style.display = 'block';
+
+      // Render the remaining pages
+      for (let pageNum = 2; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        canvas.classList.add('glide__slide');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        const context = canvas.getContext('2d');
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport
+        };
+
+        await page.render(renderContext).promise;
+        slidesContainer.appendChild(canvas);
+      }
+
+      // Initialize the Glide.js carousel after rendering
+      const glide = new Glide('.glide', {
+        type: 'carousel',
+        startAt: 0,
+        perView: 1,
+        focusAt: 'center',
+        gap: 10,
+        autoplay: false
+      });
+
+      glide.mount();
+
+      // Controls
+      const prevButton = document.getElementById('prevButton');
+      const nextButton = document.getElementById('nextButton');
+      const goButton = document.getElementById('goButton');
+      const imageInput = document.getElementById('imageInput');
+
+      const totalSlides = pdf.numPages;
+
+      prevButton.addEventListener('click', () => glide.go('<'));
+      nextButton.addEventListener('click', () => glide.go('>'));
+
+      goButton.addEventListener('click', () => {
+        const inputVal = parseInt(imageInput.value, 10);
+        if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= totalSlides) {
+          glide.go(`=${inputVal - 1}`);
+        } else {
+          alert(`Please enter a valid number between 1 and ${totalSlides}`);
+          imageInput.value = glide.index + 1;
+        }
+      });
+
+      glide.on('run.after', () => {
+        imageInput.value = glide.index + 1;
+      });
+
+      imageInput.addEventListener('input', (event) => {
+        imageInput.value = imageInput.value.replace(/[^0-9]/g, '');
+      });
+    }
+
+    renderPDF();
+  </script>
+</body>
