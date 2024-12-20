@@ -31,3 +31,7 @@ www.facebook.com##+js(trusted-replace-xhr-response, /\{"brs_content_label":[^\n]
 
 ! Block heavy CSS codes
 *##*:style(border-radius:unset!important;box-shadow:unset!important;text-shadow:unset!important;text-transform:unset!important;animation-iteration-count:1!important;scroll-behavior:unset!important;moz-animation-iteration-count:1!important;webkit-animation-iteration-count:1!important;backdrop-filter:unset!important;filter:unset!important;animation-timing-function:step-start!important;transition-timing-function:step-start!important;filter:none!important;text-rendering:none!important;clip-path:unset!important)
+
+! Disable vp09 and av1 codec
+m.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
+www.youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
