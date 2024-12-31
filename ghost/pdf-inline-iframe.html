@@ -6,6 +6,20 @@
     border: 1px solid #ccc;
     margin: auto;
     overflow: hidden;
+    position: relative; /* For positioning the fullscreen button */
+  }
+
+  .fullscreen-button {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    padding: 5px 10px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1000;
   }
 
   @media (max-width: 612px) {
@@ -21,12 +35,14 @@
     <p id="errorMessage">If the content does not show up, the resource may not be available. Please <a href="javascript:location.reload()">reload the page</a>.</p>
   </iframe>
   <div id="retryMessage" style="display:none;"></div>
+  <button class="fullscreen-button" id="fullscreenButton">Fullscreen</button>
 </div>
 
 <script>
   const pdfObject = document.getElementById('pdfObject');
   const errorMessage = document.getElementById('errorMessage');
   const retryMessage = document.getElementById('retryMessage');
+  const fullscreenButton = document.getElementById('fullscreenButton');
 
   let attempts = 0;
   const maxAttempts = 5;
@@ -76,4 +92,17 @@
       retryMessage.style.display = 'none';
     }
   };
+
+  // Fullscreen button event listener
+  fullscreenButton.addEventListener('click', () => {
+    if (pdfObject.requestFullscreen) {
+      pdfObject.requestFullscreen();
+    } else if (pdfObject.webkitRequestFullscreen) { // Safari support
+      pdfObject.webkitRequestFullscreen();
+    } else if (pdfObject.msRequestFullscreen) { // IE/Edge support
+      pdfObject.msRequestFullscreen();
+    } else {
+      alert('Your browser does not support fullscreen mode.');
+    }
+  });
 </script>
