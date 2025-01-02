@@ -1,9 +1,18 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
 <style>
+  .carousel-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+    height: calc(100vh - 40px);
+    /* Full viewport height minus padding */
+  }
+
   .glide {
     position: relative;
     width: 100%;
-    height: auto;
+    height: 100%;
     margin: 0;
   }
 
@@ -23,69 +32,136 @@
   .glide__slide {
     position: relative;
     width: 100%;
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
+  }
+
+  .controls-container {
+    position: absolute;
+    /* Position controls within the container */
+    bottom: 2.5%;
+    left: 50%;
+    transform: translateX(-50%);
+    /* Center horizontally */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.35);
+    z-index: 2;
+    /* Ensure controls are above the carousel content */
+  }
+  
+  .glide__slide img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
+  }
+
+  .controls-container button {
+    padding: 5px 10px;
+    min-width: 40px;
+    height: 32px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .controls-container button:hover {
+    background-color: #f0f0f0;
+  }
+
+  .controls-container input {
+    width: 50px;
+    text-align: center;
+    height: 32px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 0 5px;
+  }
+
+  .carousel-container {
+    position: relative;
+    /* Needed for absolute positioning of controls */
+    flex-grow: 1;
     height: 100%;
   }
 
-  .glide__slide img {
-    width: 100%;
-    height: 100%;
+  /* Fullscreen styles */
+  .carousel-container:fullscreen {
+    background: black;
+    width: 100vw;
+    height: 100vh;
+    padding: 0;
+  }
+
+  .carousel-container:fullscreen .glide,
+  .carousel-container:fullscreen .glide__track,
+  .carousel-container:fullscreen .glide__slides,
+  .carousel-container:fullscreen .glide__slide {
+    height: 100vh;
+  }
+
+  .carousel-container:fullscreen .glide__slide img {
+    max-width: 100vw;
+    max-height: 100vh;
     object-fit: contain;
   }
 
-  .glide-controls {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 10px;
-    gap: 10px;
-  }
-
-  .glide-controls input {
-    width: 50px;
-    text-align: center;
+  .carousel-container:fullscreen .controls-container {
+    bottom: 20px;
   }
 </style>
-
 <body>
-  <div class="glide">
-    <div class="glide__track" data-glide-el="track">
-      <div class="glide__slides" id="slidesContainer"></div>
+  <div class="carousel-wrapper">
+    <div class="carousel-container">
+      <div class="glide">
+        <div class="glide__track" data-glide-el="track">
+          <div class="glide__slides" id="slidesContainer"></div>
+        </div>
+      </div>
+      <div class="controls-container">
+        <button id="prevButton">◀</button>
+        <input id="imageInput" type="text" value="1" placeholder="1">
+        <button id="goButton">Go</button>
+        <button id="nextButton">▶</button>
+        <button class="fullscreen-button">⛶</button>
+      </div>
     </div>
   </div>
-
-  <div class="glide-controls">
-    <button id="prevButton">Previous</button>
-    <input id="imageInput" type="text" value="1" placeholder="1">
-    <button id="goButton">Goto</button>
-    <button id="nextButton">Next</button>
-  </div>
-
   <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/glide.min.js"></script>
   <script>
-    // Store all image links in a single array
-    const imageLinks = [
-      "https://i.imgur.com/C5XhZH2.jpeg",
-      "https://i.imgur.com/DOtUmdW.jpeg",
-      "https://i.imgur.com/mD7ICEF.jpeg",
-      "https://i.imgur.com/wLBNYES.png"
-      // Add more links here
+    // Store base64 encoded image links
+    const encodedImageLinks = [
+      "your-encoded-link-here-01",
+      "your-encoded-link-here-02"
     ];
-
-    // Dynamically generate the slides based on the array of image links
+    // Function to decode base64 URL
+    function decodeBase64URL(encoded) {
+      return atob(encoded);
+    }
+    // Dynamically generate the slides
     const slidesContainer = document.getElementById("slidesContainer");
-
-    imageLinks.forEach(link => {
+    encodedImageLinks.forEach(encodedLink => {
       const slide = document.createElement("div");
       slide.classList.add("glide__slide");
       const img = document.createElement("img");
-      img.src = link;
+      img.src = decodeBase64URL(encodedLink);
       slide.appendChild(img);
       slidesContainer.appendChild(slide);
     });
-
     // Initialize the Glide.js carousel
     const glide = new Glide(".glide", {
       type: "carousel",
@@ -95,41 +171,56 @@
       gap: 10,
       autoplay: false
     });
-
     glide.mount();
-
     // Controls
     const prevButton = document.getElementById("prevButton");
     const nextButton = document.getElementById("nextButton");
     const goButton = document.getElementById("goButton");
     const imageInput = document.getElementById("imageInput");
-
-    // Get the total number of slides dynamically based on the imageLinks array
-    const totalSlides = imageLinks.length;
-
+    const totalSlides = encodedImageLinks.length;
+    // Fullscreen functionality
+    const carouselContainer = document.querySelector('.carousel-container');
+    const fullscreenButton = document.querySelector('.fullscreen-button');
+    fullscreenButton.addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        carouselContainer.requestFullscreen().then(() => {
+          glide.update();
+        }).catch(err => {
+          console.error('Error attempting to enable fullscreen:', err);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          glide.update();
+        }).catch(err => {
+          console.error('Error attempting to exit fullscreen:', err);
+        });
+      }
+    });
+    // Update fullscreen button icon based on state
+    document.addEventListener('fullscreenchange', () => {
+      fullscreenButton.textContent = document.fullscreenElement ? '⎋' : '⛶';
+      glide.update();
+    });
     // Event listeners for navigation
     prevButton.addEventListener("click", () => glide.go("<"));
     nextButton.addEventListener("click", () => glide.go(">"));
-
     // Jump to a specific slide when "Go" is clicked
     goButton.addEventListener("click", () => {
       const inputVal = parseInt(imageInput.value, 10);
       if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= totalSlides) {
-        glide.go(`=${inputVal - 1}`); // Jump to the specified slide
+        glide.go(`=${inputVal - 1}`);
       } else {
         alert(`Please enter a valid number between 1 and ${totalSlides}`);
-        imageInput.value = glide.index + 1; // Reset to current slide
+        imageInput.value = glide.index + 1;
       }
     });
-
     // Update the input box when the slide changes
     glide.on("run.after", () => {
-      imageInput.value = glide.index + 1; // Convert back to 1-based index
+      imageInput.value = glide.index + 1;
     });
-
     // Ensure only numeric input
     imageInput.addEventListener("input", (event) => {
-      imageInput.value = imageInput.value.replace(/[^0-9]/g, ""); // Allow only numbers
+      imageInput.value = imageInput.value.replace(/[^0-9]/g, "");
     });
   </script>
 </body>
