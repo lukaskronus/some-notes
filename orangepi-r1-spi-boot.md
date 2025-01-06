@@ -66,7 +66,7 @@ https://forum.armbian.com/topic/8111-orange-pi-zero-plus-spi-nor-flash-anyone-kn
 3. Use this command to compile only u-boot instead of full Armbian image
 ```bash
 ./compile.sh uboot-config CLEAN_LEVEL="make,debs" BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_ONLY="u-boot" BUILD_MINIMAL="yes" BUILD_DESKTOP="no"
-# Select MTD Device -> SPI flash -> Macronix
+# Select Device Drivers -> MTD Device -> SPI flash -> Macronix
 ```
 
 ## Connect serial debug USB
@@ -79,6 +79,8 @@ GPIO (26-pin header) - TX - RX - GND
 # serial modem on /dev/ttyUSB0
 sudo minicom -s -D /dev/ttyUSB0 -b 115200 --color=on
 ```
+
+4. Check the compiled u-boot deb file in `output/debs/linux-u-boot-*`
 
 ## Install u-boot & Activate SPI NOR flash
 
