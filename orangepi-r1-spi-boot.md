@@ -26,7 +26,17 @@ https://forum.armbian.com/topic/8111-orange-pi-zero-plus-spi-nor-flash-anyone-kn
 - The pre-built u-boot does not support OrangePi Zero/R1 expansion board
 - OrangePi R1 does not have any USB port without the expansion board
 
-2. Apply DTS patch to enable expansion board I/O
+2. Clone Armbian Build Framework
+```bash
+# Latest stable version, can change it to newer version
+git clone --depth=1 --branch=v24.11 https://github.com/armbian/build
+cd build
+./compile.sh BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_MINIMAL="yes" BUILD_DESKTOP="no" uboot-config
+# Select Device Drivers -> MTD Device -> SPI flash -> Macronix
+# Select Device Drivers -> USB Support -> Check USB3 xHCI
+```
+
+3. Create a new `orangepi-r1-expansion-board.patch` file in `userpatches/u-boot/u-boot-sunxi/` (`userpatches` will be available after first run `./compile.sh` command)
 
 ```diff
 --- a/arch/arm/dts/sun8i-h2-plus-orangepi-r1.dts
@@ -63,12 +73,28 @@ https://forum.armbian.com/topic/8111-orange-pi-zero-plus-spi-nor-flash-anyone-kn
   vqmmc-supply = <&reg_vcc3v3>;
 ```
 
-3. Use this command to compile only u-boot instead of full Armbian image
-```bash
-./compile.sh uboot-config CLEAN_LEVEL="make,debs" BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_ONLY="u-boot" BUILD_MINIMAL="yes" BUILD_DESKTOP="no"
-# Select Device Drivers -> MTD Device -> SPI flash -> Macronix
+4. Create another patch `add-support-usb3.patch` (enable booting from USB 3.0 flash drive)
+```diff
+--- a/configs/orangepi_r1_defconfig
++++ b/configs/orangepi_r1_defconfig
+@@ -6,7 +6,11 @@
+ CONFIG_DRAM_CLK=624
+ # CONFIG_VIDEO_DE2 is not set
+ CONFIG_SPL_SPI_SUNXI=y
++CONFIG_LOCALVERSION="-armbian-2024.01-S866c-P3acd-H0429-V4123-Bda0a-R448a"
++# CONFIG_LOCALVERSION_AUTO is not set
+ # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
++CONFIG_BOOTDELAY=1
++CONFIG_LOGLEVEL=6
+ CONFIG_CONSOLE_MUX=y
+ CONFIG_SPI_FLASH_WINBOND=y
+ CONFIG_SUN8I_EMAC=y
 ```
-4. Check the compiled u-boot deb file in `output/debs/linux-u-boot-*`
+
+5. Compile uboot and the compiled uboot is in `output/debs/linux-u-boot-*`
+```bash
+./compile.sh BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_MINIMAL="yes" BUILD_DESKTOP="no" uboot
+```
    
 ## Connect serial debug USB
 
@@ -86,7 +112,7 @@ sudo minicom -s -D /dev/ttyUSB0 -b 115200 --color=on
 - Move the compiled u-boot deb file to the board
 - Install new u-boot by `dpkg -i ./u-boot.deb`
 - Run command `nand-sata-install` and update new u-boot
-- Edit file `/boot/armbianEnv.tx` and add `spi-jedec-nor` to `overlays`
+- Edit file `/boot/armbianEnv.txt` and add `spi-jedec-nor` to `overlays`
 ```bash
 overlays=usbhost2 usbhost3 spi-jedec-nor
 ```
@@ -95,9 +121,14 @@ overlays=usbhost2 usbhost3 spi-jedec-nor
 After reboot, check the SPI NOR by command
 
 ```bash
->cat /proc/mtd
+>ls -l /proc/mtd0
 crw------- 1 root root 90, 0 Mar 27 21:17 /dev/mtd0
 ```
+### **IN CASE YOU ALREADY FLASH U-BOOT TO SPI MEMORY**
+- Install new `u-boot.deb` compiled
+- Add `spi-jedec-nor` to `/boot/armbianEnv.txt`
+- Reboot the board (unplug/plug again)
+- Flash new `u-boot` to SPI memory by following the next step below
 
 ## Erase & Flash U-Boot to SPI Flash chip
 
@@ -109,7 +140,8 @@ mtd_debug info /dev/mtd0
 flash_erase /dev/mtd0 0 0
 
 # Write u-boot to SPI flash chip
-nandwrite -p /dev/mtd0 /dev/mtd0 /usr/lib/linux-u-boot-current-orangepi-r1_armhf/u-boot-sunxi-with-spl.bin
+# The path may be incorrect but you can find u-boot-sunxi-with-spl.bin in /usr/lib/linux-u-boot
+nandwrite -p /dev/mtd0 /usr/lib/linux-u-boot-current-orangepi-r1_armhf/u-boot-sunxi-with-spl.bin
 
 # In old kernel, you can use command flashcp -v /dev/mtd0 /dev/mtd0 /usr/lib/linux-u-boot-current-orangepi-r1_armhf/u-boot-sunxi-with-spl.bin
 ```
@@ -117,11 +149,11 @@ nandwrite -p /dev/mtd0 /dev/mtd0 /usr/lib/linux-u-boot-current-orangepi-r1_armhf
 ## System on USB
 
 You can flash armbian directly to your USB with Balena Etcher. Then, plug your USB to the board.
-The board will load u-boot from SPI flash, then load `boot.scr` from USB
+The board will load u-boot from SPI flash, then load `boot.scr` from USB flash drive.
 
 ## Troubleshooting
 
-You can check if the u-boot is written properly to SPI by following commands:
+- You can check if the u-boot is written properly to SPI by following commands:
 
 ```bash
 >mtd_debug read /dev/mtd0 0 503668 ./current.bin
@@ -131,6 +163,8 @@ You can check if the u-boot is written properly to SPI by following commands:
 >cmp /usr/lib/linux-u-boot-current-orangepi-r1_armhf/u-boot-sunxi-with-spl.bin ./current.bin
 # No output means good
 ```
+
+- Connect the board with Serial USB UART for more detail in bootloader.
 
 ## Complete
 
