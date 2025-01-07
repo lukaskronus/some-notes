@@ -73,22 +73,21 @@ cd build
   vqmmc-supply = <&reg_vcc3v3>;
 ```
 
-4. Create another patch `add-support-usb3.patch` (enable booting from USB 3.0 flash drive)
+4. Create another patch `orangepi-r1-add-support-usb3.patch` (enable booting from USB 3.0 flash drive)
 ```diff
 --- a/configs/orangepi_r1_defconfig
 +++ b/configs/orangepi_r1_defconfig
-@@ -6,7 +6,11 @@
- CONFIG_DRAM_CLK=624
- # CONFIG_VIDEO_DE2 is not set
- CONFIG_SPL_SPI_SUNXI=y
-+CONFIG_LOCALVERSION="-armbian-2024.01-S866c-P3acd-H0429-V4123-Bda0a-R448a"
-+# CONFIG_LOCALVERSION_AUTO is not set
- # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
-+CONFIG_BOOTDELAY=1
-+CONFIG_LOGLEVEL=6
+@@ -12,8 +12,10 @@
+ CONFIG_BOOTDELAY=1
+ CONFIG_LOGLEVEL=6
  CONFIG_CONSOLE_MUX=y
++CONFIG_SPI_FLASH_MACRONIX=y
  CONFIG_SPI_FLASH_WINBOND=y
  CONFIG_SUN8I_EMAC=y
+ CONFIG_SPI=y
++CONFIG_USB_XHCI_HCD=y
+ CONFIG_USB_EHCI_HCD=y
+ CONFIG_USB_OHCI_HCD=y
 ```
 
 5. Compile uboot and the compiled uboot is in `output/debs/linux-u-boot-*`
