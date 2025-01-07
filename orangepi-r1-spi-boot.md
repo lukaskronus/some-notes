@@ -77,10 +77,10 @@ cd build
 ```diff
 --- a/configs/orangepi_r1_defconfig
 +++ b/configs/orangepi_r1_defconfig
-@@ -12,8 +12,10 @@
- CONFIG_BOOTDELAY=1
- CONFIG_LOGLEVEL=6
+@@ -9,8 +9,10 @@
+ # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
  CONFIG_CONSOLE_MUX=y
+ CONFIG_MTD=y
 +CONFIG_SPI_FLASH_MACRONIX=y
  CONFIG_SPI_FLASH_WINBOND=y
  CONFIG_SUN8I_EMAC=y
