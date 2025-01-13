@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Likert Scale Form</title>
+    <style>
+        body {
+            margin: 20px;
+        }
+        .question {
+            margin-bottom: 15px;
+        }
+        .scale {
+            display: flex;
+            gap: 10px;
+        }
+        .scale label {
+            display: inline-block;
+            text-align: center;
+            width: 30px;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 16;
+            font-weight: bold;
+        }
+    </style>
+    <script>
+        function calculateResult() {
+            const form = document.getElementById('likertForm');
+            const formData = new FormData(form);
+
+            const groupTotals = Array(6).fill(0); // Initialize totals for 6 groups
+
+            for (const [key, value] of formData.entries()) {
+                const questionNumber = parseInt(key.replace('question', ''));
+                const point = parseInt(value);
+
+                // Assign questions to groups
+                if ([1, 7, 13, 19].includes(questionNumber)) {
+                    groupTotals[0] += point;
+                } else if ([2, 8, 14, 20].includes(questionNumber)) {
+                    groupTotals[1] += point;
+                } else if ([3, 9, 15, 21].includes(questionNumber)) {
+                    groupTotals[2] += point;
+                } else if ([4, 10, 16, 22].includes(questionNumber)) {
+                    groupTotals[3] += point;
+                } else if ([5, 11, 17, 23].includes(questionNumber)) {
+                    groupTotals[4] += point;
+                } else if ([6, 12, 18, 24].includes(questionNumber)) {
+                    groupTotals[5] += point;
+                }
+            }
+
+            const resultText = [
+                `Lãnh đạo dựa trên tố chất: ${groupTotals[0]}`,
+                `Lãnh đạo dựa trên năng lực: ${groupTotals[1]}`,
+                `Lãnh đạo dựa trên kỹ năng: ${groupTotals[2]}`,
+                `Lãnh đạo dựa trên hành vi: ${groupTotals[3]}`,
+                `Lãnh đạo dựa trên mối quan hệ: ${groupTotals[4]}`,
+                `Lãnh đạo dựa trên quá trình: ${groupTotals[5]}`
+            ].join('<br>');
+            document.getElementById('result').innerHTML = resultText;
+        }
+    </script>
+</head>
+<body>
+    <h2>Feedback Form</h2>
+    <form id="likertForm" onsubmit="event.preventDefault(); calculateResult();">
+        <!-- Generate 24 questions dynamically -->
+        <div id="questions">
+            <script>
+                const questionTexts = [
+                    "Khi tôi nghĩ về lãnh đạo, tôi nghĩ đến một người có những đặc điểm tính cách đặc biệt.",
+                    "Cũng giống như chơi piano hoặc tennis, lãnh đạo là một khả năng có thể học được.",
+                    "Lãnh đạo đòi hỏi kiến thức và sự hiểu biết.",
+                    "Lãnh đạo là về những gì mọi người làm hơn là về con người họ.",
+                    "Nhân viên có thể ảnh hưởng đến quá trình lãnh đạo nhiều như các nhà lãnh đạo.",
+                    "Lãnh đạo là quá trình ảnh hưởng đến người khác.",
+                    "Một số người sinh ra đã là nhà lãnh đạo.",
+                    "Một số người có khả năng tự nhiên để trở thành nhà lãnh đạo.",
+                    "Chìa khóa để lãnh đạo thành công là có được các kỹ năng phù hợp.",
+                    "Lãnh đạo được mô tả tốt nhất qua những gì các nhà lãnh đạo làm.",
+                    "Nhà lãnh đạo và nhân viên cùng chia sẻ trách nhiệm trong quá trình lãnh đạo.",
+                    "Lãnh đạo là một chuỗi các hành động hướng đến những mục tiêu tích cực.",
+                    "Một người cần có những đặc điểm nhất định để trở thành một nhà lãnh đạo hiệu quả.",
+                    "Mọi người đều có khả năng trở thành một nhà lãnh đạo.",
+                    "Các nhà lãnh đạo hiệu quả có năng lực trong vai trò của họ.",
+                    "Bản chất của lãnh đạo là thực hiện nhiệm vụ và xử lý các mối quan hệ với con người.",
+                    "Lãnh đạo là về những mục đích chung của nhà lãnh đạo và người theo dõi.",
+                    "Lãnh đạo không chỉ dựa vào nhà lãnh đạo mà là một quá trình bao gồm nhà lãnh đạo, người theo dõi và hoàn cảnh.",
+                    "Một người có thể trở thành những nhà lãnh đạo vĩ đại nhờ vào các tố chất của họ.",
+                    "Mọi người đều có thể phát triển khả năng lãnh đạo.",
+                    "Các nhà lãnh đạo hiệu quả là những người có năng lực và kiến thức.",
+                    "Công tác lãnh đạo là cách các nhà lãnh đạo làm việc với mọi người để đạt được mục tiêu.",
+                    "Lãnh đạo hiệu quả được thể hiện tốt nhất bằng mối quan hệ giữa nhà lãnh đạo và nhân viên.",
+                    "Các nhà lãnh đạo ảnh hưởng đến các nhân viên và cũng bị các nhân viên ảnh hưởng."
+                ];
+
+                questionTexts.forEach((text, index) => {
+                    document.write(`
+                        <div class="question">
+                            <p>${index + 1}. ${text}</p>
+                            <div class="scale">
+                                <label><input type="radio" name="question${index + 1}" value="1" required> 1</label>
+                                <label><input type="radio" name="question${index + 1}" value="2"> 2</label>
+                                <label><input type="radio" name="question${index + 1}" value="3"> 3</label>
+                                <label><input type="radio" name="question${index + 1}" value="4"> 4</label>
+                                <label><input type="radio" name="question${index + 1}" value="5"> 5</label>
+                            </div>
+                        </div>
+                    `);
+                });
+            </script>
+        </div>
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="result" class="result"></div>
+</body>
+</html>
