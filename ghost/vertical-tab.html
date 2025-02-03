@@ -1,0 +1,61 @@
+<style>
+    /* Button styling */
+    .tab-button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-right: 10px; /* Space between buttons */
+    }
+
+    /* Content box styling */
+    .tab-content {
+        margin-top: 10px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        line-height: 1.5;
+        font-size: 16px;
+        display: none; /* Hidden by default */
+    }
+
+    /* Show the active content */
+    .tab-content.active {
+        display: block;
+    }
+</style>
+
+<!-- Buttons -->
+<button class="tab-button" data-tab="tab1">Tab 1</button>
+<button class="tab-button" data-tab="tab2">Tab 2</button>
+
+<!-- Content Sections -->
+<div id="tab1" class="tab-content active">
+    <!-- Your content here -->
+</div>
+
+<div id="tab2" class="tab-content">
+    <!-- Your content here -->
+</div>
+
+<script>
+    // Get all buttons and content sections
+    const buttons = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.tab-content');
+
+    // Add click event listeners to buttons
+    buttons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Remove 'active' class from all buttons and content
+            buttons.forEach(btn => btn.classList.remove('active'));
+            contents.forEach(content => content.classList.remove('active'));
+
+            // Add 'active' class to the clicked button and corresponding content
+            const targetTab = button.getAttribute('data-tab');
+            button.classList.add('active');
+            document.getElementById(targetTab).classList.add('active');
+        });
+    });
+</script>
