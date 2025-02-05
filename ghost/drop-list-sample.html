@@ -1,0 +1,80 @@
+<style>
+  .menu {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .menu li {
+    margin-left: 10px;
+  }
+
+  .submenu {
+    display: none;
+    list-style: none;
+    padding-left: 10px;
+  }
+
+  .menu a {
+    text-decoration: none;
+    display: block;
+    cursor: pointer;
+  }
+
+  .menu a:hover {
+    text-decoration: underline;
+  }
+</style>
+
+<ul class="menu">
+  <li>
+    <a href="#">MAIN CATEGORY</a>
+    <ul class="submenu">
+      <li>
+        <a href="#">FIRST SUBCATEGORY 1</a>
+        <ul class="submenu">
+          <li>
+            <a href="#">SECOND SUBCATEGORY 1</a>
+            <ul class="submenu">
+              <li>
+                <a href="#">Item 1</a>
+              </li>
+              <li>
+                <a href="#">Item 2</a>
+              </li>
+            </ul>
+          </li>
+          <li>
+            <a href="#">SECOND SUBCATEGORY 2</a>
+          </li>
+        </ul>
+      </li>
+      <li>
+        <a href="#">FIRST SUBCATEGORY 2</a>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".menu a").forEach(function(anchor) {
+      anchor.addEventListener("click", function(event) {
+        event.preventDefault();
+        let submenu = this.nextElementSibling;
+        if (submenu && submenu.classList.contains("submenu")) {
+          let isVisible = submenu.style.display === "block";
+          closeSubmenus(this.closest("ul"));
+          if (!isVisible) {
+            submenu.style.display = "block";
+          }
+        }
+      });
+    });
+
+    function closeSubmenus(parent) {
+      parent.querySelectorAll(".submenu").forEach(function(sub) {
+        sub.style.display = "none";
+      });
+    }
+  });
+</script>
