@@ -7,8 +7,8 @@ from google.oauth2.credentials import Credentials
 # Constants
 SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 CREDENTIALS_FILE = "/path/to/your/youtube_credentials.json"
-TIMEZONE_OFFSET = 7  # UTC+7
-SCHEDULE_TIMES = ["06:00", "16:00", "20:00"]  # Times in HH:MM format
+TIMEZONE_OFFSET = 7 # UTC+7
+SCHEDULE_TIMES = ["02:00", "06:00", "10:00", "14:00", "18:00", "22:00"]  # Updated times in HH:MM format
 
 def authenticate_youtube():
     """Authenticate with the YouTube API using the credentials file."""
@@ -57,6 +57,7 @@ def create_broadcast(youtube, title, description, start_time, stream_id):
             "enableAutoStart": True,  # Enable auto-start
             "enableAutoStop": True,   # Enable auto-end
             "enableLiveChat": False,  # Disable live chat
+            "liveChatId": None,  # Explicitly disable live chat
         },
     }
     broadcast = youtube.liveBroadcasts().insert(part="snippet,status,contentDetails", body=broadcast_body).execute()
@@ -86,16 +87,16 @@ def main():
         )
         if scheduled_time < now:
             # Skip past times
-            print(f"Skipping past scheduled time: {schedule_time} UTC+7.")
+            print(f"Skipping past scheduled time: {schedule_time}.")
             continue
 
         iso_scheduled_time = scheduled_time.isoformat() + "Z"
         if iso_scheduled_time in existing_broadcasts:
-            print(f"Skipping duplicate broadcast for {schedule_time} UTC+7.")
+            print(f"Skipping duplicate broadcast for {schedule_time}.")
             continue
 
-        title = f"Scheduled Stream {schedule_time} UTC+7"
-        description = f"This is a scheduled stream for {schedule_time} UTC+7."
+        title = f"Scheduled Stream {scheduled_time.strftime('%d-%m-%Y')} {schedule_time}"
+        description = f"This is a scheduled stream for {scheduled_time.strftime('%d-%m-%Y')} {schedule_time} from the front yard camera"
         broadcast = create_broadcast(youtube, title, description, scheduled_time, stream_id)
         print(f"Scheduled stream created: {broadcast['id']} at {schedule_time}")
 
