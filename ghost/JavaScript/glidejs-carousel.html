@@ -1,13 +1,12 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
 <style>
-  /* Reset styles for the carousel */
+  /* Reset Ghost styles for our carousel */
   .carousel-wrapper * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
 
-  /* Main carousel wrapper */
   .carousel-wrapper {
     width: 100%;
     height: 70vh;
@@ -16,7 +15,6 @@
     position: relative;
   }
 
-  /* Carousel container */
   .carousel-container {
     position: relative;
     width: 100%;
@@ -26,7 +24,7 @@
     overflow: hidden;
   }
 
-  /* Glide slider styles */
+  /* Force Glide styles to override Ghost */
   .carousel-container .glide {
     width: 100%;
     height: 100%;
@@ -55,6 +53,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    transform: none;
     position: relative;
   }
 
@@ -69,67 +68,79 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-drag: none;
+    position: relative;
+    left: 0;
+    right: 0;
   }
 
-  /* Controls container */
+  /* Custom controls styling */
   .carousel-container .controls-container {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 8px;
-    padding: 8px 12px;
-    background-color: rgba(0, 0, 0, 0.7);
-    border-radius: 6px;
-    z-index: 100;
+    position: absolute !important;
+    bottom: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    display: flex !important;
+    gap: 8px !important;
+    padding: 8px 12px !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+    border-radius: 6px !important;
+    z-index: 100 !important;
+    width: auto !important;
+    min-width: auto !important;
+    margin: 0 !important;
   }
 
-  /* Control buttons */
   .carousel-container .controls-container button {
-    background-color: white;
-    border: none;
-    padding: 6px 12px;
-    min-width: 36px;
-    height: 32px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    color: black;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
+    background-color: white !important;
+    border: none !important;
+    padding: 6px 12px !important;
+    min-width: 36px !important;
+    height: 32px !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    color: black !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: background-color 0.2s !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    text-transform: none !important;
+    font-weight: normal !important;
+    letter-spacing: normal !important;
   }
 
   .carousel-container .controls-container button:hover {
-    background-color: #f0f0f0;
+    background-color: #f0f0f0 !important;
   }
 
-  /* Input field for slide navigation */
   .carousel-container .controls-container input {
-    width: 50px;
-    text-align: center;
-    height: 32px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    padding: 0 5px;
-    font-size: 14px;
-    background: white;
-    color: black;
+    width: 50px !important;
+    text-align: center !important;
+    height: 32px !important;
+    border: 1px solid #ddd !important;
+    border-radius: 4px !important;
+    padding: 0 5px !important;
+    font-size: 14px !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+    line-height: normal !important;
   }
 
   /* Fullscreen styles */
   .carousel-container:fullscreen {
     background: black;
+    padding: 0;
   }
 
   .carousel-container:fullscreen .glide__slide img {
-    max-height: 100vh;
+    max-height: 100vh
   }
 
   .carousel-container:fullscreen .controls-container {
-    bottom: 40px;
+    bottom: 40px !important;
   }
 
   /* Mobile responsive styles */
@@ -137,26 +148,27 @@
     .carousel-wrapper {
       height: 50vh;
     }
-
+    
     .carousel-container .controls-container {
-      bottom: 15px;
-      padding: 6px 10px;
+      bottom: 15px !important;
+      padding: 6px 10px !important;
     }
 
     .carousel-container .controls-container button {
-      padding: 4px 8px;
-      min-width: 32px;
-      height: 28px;
-      font-size: 12px;
+      padding: 4px 8px !important;
+      min-width: 32px !important;
+      height: 28px !important;
+      font-size: 12px !important;
     }
 
     .carousel-container .controls-container input {
-      width: 40px;
-      height: 28px;
-      font-size: 12px;
+      width: 40px !important;
+      height: 28px !important;
+      font-size: 12px !important;
     }
   }
 
+  /* Small mobile devices */
   @media (max-width: 480px) {
     .carousel-wrapper {
       height: 40vh;
@@ -187,6 +199,64 @@
     // Base64 encoded image links
     const encodedImageLinks = [
       // Add your base64 encoded image URLs here
+      "aHR0cHM6Ly9pLmliYi5jby9mZE1RM2RTL2ltYWdlMDEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby93WU0yQ2s0L2ltYWdlMDIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9QVDNOVnZSL2ltYWdlMDMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9nVHFRWGR5L2ltYWdlMDQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby82RmpGMTExL2ltYWdlMDUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9weko5YlI3L2ltYWdlMDYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby80MUxaOFpWL2ltYWdlMDcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9IWEhWc1pTL2ltYWdlMDguanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9TZEhqaGZ6L2ltYWdlMDkuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9LN3R0N0JqL2ltYWdlMTAuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8wcDdUOFNKL2ltYWdlMTEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8waFJoamo5L2ltYWdlMTIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby80dDFDZHlxL2ltYWdlMTMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby84MHdaU0tSL2ltYWdlMTQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9zVmMxUllOL2ltYWdlMTUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9mU3pkYnQzL2ltYWdlMTYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9aMVlxcWpiL2ltYWdlMTcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9zbTBxdnZxL2ltYWdlMTguanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9XcFFqQjRUL2ltYWdlMTkuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9oeUJIajkxL2ltYWdlMjAuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby96SmhKa01WL2ltYWdlMjEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9OVll4QjQ3L2ltYWdlMjIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9RWXJSMW1yL2ltYWdlMjMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9ZUEs4SnljL2ltYWdlMjQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9QTlZNTWt3L2ltYWdlMjUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9jYjBkMnJyL2ltYWdlMjYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9rSmRNZkJRL2ltYWdlMjcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9RbjNXcEJXL2ltYWdlMjguanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9NTlBxZDlML2ltYWdlMjkuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9Keno3SHM5L2ltYWdlMzAuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9qd3pDcENXL2ltYWdlMzEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9LRHhzWXpLL2ltYWdlMzIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby84ZGhOWjduL2ltYWdlMzMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9rSHd6eEtIL2ltYWdlMzQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9xQ3dnMjJCL2ltYWdlMzUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9uczAzbUdkL2ltYWdlMzYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby90SmY2eW1YL2ltYWdlMzcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9RTTNOUFZSL2ltYWdlMzguanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9ZZHg4NlREL2ltYWdlMzkuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8xZjlwQkNWL2ltYWdlNDAuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9wd3Jod1Z0L2ltYWdlNDEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8wc2Y2c3F4L2ltYWdlNDIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9uMFJHTGpLL2ltYWdlNDMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8xSjdXUWNQL2ltYWdlNDQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9CTnJUM2hoL2ltYWdlNDUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby85WlJLQ1NRL2ltYWdlNDYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9ja2NQQzMwL2ltYWdlNDcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9nTTBLRzg2L2ltYWdlNDguanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9rTVg2c1lHL2ltYWdlNDkuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9UY0dKY1pyL2ltYWdlNTAuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby82WVJrS3ZWL2ltYWdlNTEuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9wZjVHMDNzL2ltYWdlNTIuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9ZYzdESDZuL2ltYWdlNTMuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9UOFF2VFhzL2ltYWdlNTQuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9QWVNmZzNrL2ltYWdlNTUuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby8xcWQ0Nkh0L2ltYWdlNTYuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9nd3cxc3dqL2ltYWdlNTcuanBn",
+        "aHR0cHM6Ly9pLmliYi5jby9rQnZ3NFpxL2ltYWdlNTguanBn"
     ];
 
     // Function to decode base64 URL
