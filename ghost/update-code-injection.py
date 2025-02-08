@@ -64,7 +64,7 @@ def update_code_injection(ghost_url, jwt_token, post, code_injection):
     data = {"posts": [{"codeinjection_head": code_injection, "updated_at": updated_at}]}
     headers = {"Authorization": f"Ghost {jwt_token}"}
 
-    requests.put(url, json=data, headers=headers)
+    response = requests.put(url, json=data, headers=headers)
 
     if response.status_code == 200:
         print(f"✅ Updated code injection for post ID: {post_id}")
