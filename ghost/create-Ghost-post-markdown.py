@@ -18,7 +18,7 @@ def generate_ghost_token(api_key):
     header = {'alg': 'HS256', 'typ': 'JWT', 'kid': id}
     payload = {
         'iat': iat,
-        'exp': iat + 5 * 60,  # Token expires in 5 minutes
+        'exp': iat + 1 * 60,  # Token expires in 1 minutes
         'aud': '/admin/'
     }
     
@@ -77,17 +77,15 @@ def main():
 
     # Define code injection for the post
     code_injection_head = """
-
+        
     """
 
     # Iterate over each markdown file
-    for i in range(1, 2): # Change according how many post you want
+    for i in range(1, 11): # Change according how many post you want
         file_name = f"File {i}.md" # Your markdown filename
         if not os.path.exists(file_name):
             print(f"Markdown file {file_name} not found.")
             continue
-        else:
-            print(f"Processing the {file_name}...")
 
         # Read the markdown content and strip BOM
         markdown_content = read_markdown_file(file_name)
@@ -96,11 +94,13 @@ def main():
         mobiledoc_content = markdown_to_mobiledoc(markdown_content)
 
         # Define the title for the new post
-        target_title = f"Chapter {i}" #Your post's title
+        target_title = f"Chapter {i}" # Your post's title
+        target_slug = f"chapter{i:02d}" # Format 01-09
 
         # Prepare the post data
         post_data = {
             "title": target_title,
+            "slug": target_slug,
             "mobiledoc": mobiledoc_content,  # Use 'mobiledoc' field with Markdown card
             "status": "draft",  # Change status if needed (e.g., "draft")
             "tags": [{"name": tag_name}],  # Add tags to the post
