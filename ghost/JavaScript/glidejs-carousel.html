@@ -1,12 +1,13 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/css/glide.core.min.css">
 <style>
-  /* Reset Ghost styles for our carousel */
+  /* Reset styles for the carousel */
   .carousel-wrapper * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
   }
 
+  /* Main carousel wrapper */
   .carousel-wrapper {
     width: 100%;
     height: 70vh;
@@ -15,6 +16,7 @@
     position: relative;
   }
 
+  /* Carousel container */
   .carousel-container {
     position: relative;
     width: 100%;
@@ -24,7 +26,7 @@
     overflow: hidden;
   }
 
-  /* Force Glide styles to override Ghost */
+  /* Glide slider styles */
   .carousel-container .glide {
     width: 100%;
     height: 100%;
@@ -53,7 +55,6 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    transform: none;
     position: relative;
   }
 
@@ -68,79 +69,67 @@
     pointer-events: none;
     user-select: none;
     -webkit-user-drag: none;
-    position: relative;
-    left: 0;
-    right: 0;
   }
 
-  /* Custom controls styling */
+  /* Controls container */
   .carousel-container .controls-container {
-    position: absolute !important;
-    bottom: 20px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
-    display: flex !important;
-    gap: 8px !important;
-    padding: 8px 12px !important;
-    background-color: rgba(0, 0, 0, 0.7) !important;
-    border-radius: 6px !important;
-    z-index: 100 !important;
-    width: auto !important;
-    min-width: auto !important;
-    margin: 0 !important;
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 6px;
+    z-index: 100;
   }
 
+  /* Control buttons */
   .carousel-container .controls-container button {
-    background-color: white !important;
-    border: none !important;
-    padding: 6px 12px !important;
-    min-width: 36px !important;
-    height: 32px !important;
-    border-radius: 4px !important;
-    cursor: pointer !important;
-    font-size: 14px !important;
-    color: black !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: background-color 0.2s !important;
-    margin: 0 !important;
-    line-height: 1 !important;
-    text-transform: none !important;
-    font-weight: normal !important;
-    letter-spacing: normal !important;
+    background-color: white;
+    border: none;
+    padding: 6px 12px;
+    min-width: 36px;
+    height: 32px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s;
   }
 
   .carousel-container .controls-container button:hover {
-    background-color: #f0f0f0 !important;
+    background-color: #f0f0f0;
   }
 
+  /* Input field for slide navigation */
   .carousel-container .controls-container input {
-    width: 50px !important;
-    text-align: center !important;
-    height: 32px !important;
-    border: 1px solid #ddd !important;
-    border-radius: 4px !important;
-    padding: 0 5px !important;
-    font-size: 14px !important;
-    margin: 0 !important;
-    background: white !important;
-    color: black !important;
-    line-height: normal !important;
+    width: 50px;
+    text-align: center;
+    height: 32px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: 14px;
+    background: white;
+    color: black;
   }
 
   /* Fullscreen styles */
   .carousel-container:fullscreen {
     background: black;
-    padding: 0;
   }
 
   .carousel-container:fullscreen .glide__slide img {
-    max-height: 100vh
+    max-height: 100vh;
   }
 
   .carousel-container:fullscreen .controls-container {
-    bottom: 40px !important;
+    bottom: 40px;
   }
 
   /* Mobile responsive styles */
@@ -148,27 +137,26 @@
     .carousel-wrapper {
       height: 50vh;
     }
-    
+
     .carousel-container .controls-container {
-      bottom: 15px !important;
-      padding: 6px 10px !important;
+      bottom: 15px;
+      padding: 6px 10px;
     }
 
     .carousel-container .controls-container button {
-      padding: 4px 8px !important;
-      min-width: 32px !important;
-      height: 28px !important;
-      font-size: 12px !important;
+      padding: 4px 8px;
+      min-width: 32px;
+      height: 28px;
+      font-size: 12px;
     }
 
     .carousel-container .controls-container input {
-      width: 40px !important;
-      height: 28px !important;
-      font-size: 12px !important;
+      width: 40px;
+      height: 28px;
+      font-size: 12px;
     }
   }
 
-  /* Small mobile devices */
   @media (max-width: 480px) {
     .carousel-wrapper {
       height: 40vh;
@@ -196,110 +184,115 @@
 <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/glide.min.js"></script>
 <script>
   (() => {
-    // Store base64 encoded image links
+    // Base64 encoded image links
     const encodedImageLinks = [
-
+      // Add your base64 encoded image URLs here
     ];
-
-    encodedImageLinks.forEach(encodedLink => {
-      const decodedURL = decodeBase64URL(encodedLink);
-      console.log(decodedURL);  // Check if the URL is valid
-    });
 
     // Function to decode base64 URL
     function decodeBase64URL(encoded) {
       return atob(encoded);
     }
 
-    // Dynamically generate the slides
-    const slidesContainer = document.getElementById("slidesContainer");
-    encodedImageLinks.forEach(encodedLink => {
-      const slide = document.createElement("div");
-      slide.classList.add("glide__slide");
-      const img = document.createElement("img");
-      img.src = decodeBase64URL(encodedLink);
-      img.loading = "";
-      img.draggable = false;
-      slide.appendChild(img);
-      slidesContainer.appendChild(slide);
-    });
+    // Function to generate slides
+    function generateSlides() {
+      const slidesContainer = document.getElementById("slidesContainer");
+      encodedImageLinks.forEach(encodedLink => {
+        const slide = document.createElement("div");
+        slide.classList.add("glide__slide");
+        const img = document.createElement("img");
+        img.src = decodeBase64URL(encodedLink);
+        img.loading = "lazy";
+        img.draggable = false;
+        slide.appendChild(img);
+        slidesContainer.appendChild(slide);
+      });
+    }
 
-    // Initialize Glide with mobile-friendly settings
-    const glide = new Glide(".glide", {
-      type: "carousel",
-      startAt: 0,
-      perView: 1,
-      focusAt: "center",
-      gap: 0,
-      autoplay: false,
-      dragThreshold: 50,
-      touchRatio: 1,
-      touchAngle: 45,
-      animationDuration: 300,
-      rewindDuration: 300,
-      throttle: 50
-    }).mount();
+    // Function to initialize Glide carousel
+    function initializeCarousel() {
+      return new Glide(".glide", {
+        type: "carousel",
+        startAt: 0,
+        perView: 1,
+        focusAt: "center",
+        gap: 0,
+        autoplay: false,
+        dragThreshold: 50,
+        touchRatio: 1,
+        touchAngle: 45,
+        animationDuration: 300,
+        rewindDuration: 300,
+        throttle: 50
+      }).mount();
+    }
 
-    // Setup controls
-    const controls = {
-      prev: document.getElementById("prevButton"),
-      next: document.getElementById("nextButton"),
-      go: document.getElementById("goButton"),
-      input: document.getElementById("imageInput"),
-      fullscreen: document.querySelector(".fullscreen-button"),
-      container: document.querySelector(".carousel-container")
-    };
+    // Function to setup carousel controls
+    function setupControls(glide) {
+      const controls = {
+        prev: document.getElementById("prevButton"),
+        next: document.getElementById("nextButton"),
+        go: document.getElementById("goButton"),
+        input: document.getElementById("imageInput"),
+        fullscreen: document.querySelector(".fullscreen-button"),
+        container: document.querySelector(".carousel-container")
+      };
 
-    // Fullscreen handling
-    controls.fullscreen.addEventListener("click", () => {
-      if (!document.fullscreenElement) {
-        controls.container.requestFullscreen()
-          .then(() => {
-            setTimeout(() => glide.update(), 100);
-          })
-          .catch(err => console.error("Fullscreen error:", err));
-      } else {
-        document.exitFullscreen()
-          .then(() => {
-            setTimeout(() => glide.update(), 100);
-          })
-          .catch(err => console.error("Exit fullscreen error:", err));
-      }
-    });
+      // Fullscreen handling
+      controls.fullscreen.addEventListener("click", () => {
+        if (!document.fullscreenElement) {
+          controls.container.requestFullscreen()
+            .then(() => glide.update())
+            .catch(err => console.error("Fullscreen error:", err));
+        } else {
+          document.exitFullscreen()
+            .then(() => glide.update())
+            .catch(err => console.error("Exit fullscreen error:", err));
+        }
+      });
 
-    document.addEventListener("fullscreenchange", () => {
-      controls.fullscreen.textContent = document.fullscreenElement ? "⎋" : "⛶";
-      setTimeout(() => glide.update(), 100);
-    });
+      document.addEventListener("fullscreenchange", () => {
+        controls.fullscreen.textContent = document.fullscreenElement ? "⎋" : "⛶";
+        glide.update();
+      });
 
-    // Navigation controls
-    controls.prev.addEventListener("click", () => glide.go("<"));
-    controls.next.addEventListener("click", () => glide.go(">"));
-    
-    // Go to slide functionality
-    controls.go.addEventListener("click", () => {
-      const inputVal = parseInt(controls.input.value, 10);
-      if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= encodedImageLinks.length) {
-        glide.go(`=${inputVal - 1}`);
-      } else {
-        alert(`Please enter a valid number between 1 and ${encodedImageLinks.length}`);
+      // Navigation controls
+      controls.prev.addEventListener("click", () => glide.go("<"));
+      controls.next.addEventListener("click", () => glide.go(">"));
+
+      // Go to slide functionality
+      controls.go.addEventListener("click", () => {
+        const inputVal = parseInt(controls.input.value, 10);
+        if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= encodedImageLinks.length) {
+          glide.go(`=${inputVal - 1}`);
+        } else {
+          alert(`Please enter a valid number between 1 and ${encodedImageLinks.length}`);
+          controls.input.value = glide.index + 1;
+        }
+      });
+
+      // Update input value on slide change
+      glide.on("run.after", () => {
         controls.input.value = glide.index + 1;
-      }
-    });
+      });
 
-    // Update input value on slide change
-    glide.on("run.after", () => {
-      controls.input.value = glide.index + 1;
-    });
+      // Input validation
+      controls.input.addEventListener("input", () => {
+        controls.input.value = controls.input.value.replace(/[^0-9]/g, "");
+      });
 
-    // Input validation
-    controls.input.addEventListener("input", () => {
-      controls.input.value = controls.input.value.replace(/[^0-9]/g, "");
-    });
+      // Handle window resize
+      window.addEventListener("resize", () => glide.update());
+    }
 
-    // Handle window resize
-    window.addEventListener('resize', () => {
-      setTimeout(() => glide.update(), 100);
-    });
+    // Main function to initialize everything
+    function init() {
+      generateSlides();
+      const glide = initializeCarousel();
+      setupControls(glide);
+    }
+
+    // Initialize the carousel
+    init();
   })();
 </script>
