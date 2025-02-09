@@ -1,7 +1,7 @@
 import os
 import requests
 import jwt  # pip install pyjwt
-from datetime import datetime as date
+from datetime import datetime, timedelta
 import json  # Import the json module to serialize mobiledoc
 
 # Ghost API credentials
@@ -14,7 +14,7 @@ def generate_ghost_token(api_key):
     id, secret = api_key.split(':')
     
     # Prepare header and payload
-    iat = int(date.now().timestamp())
+    iat = int(datetime.now().timestamp())
     header = {'alg': 'HS256', 'typ': 'JWT', 'kid': id}
     payload = {
         'iat': iat,
@@ -75,13 +75,19 @@ def main():
     # OR
     # author_id = "1234567890abcdef12345678"  # Replace with the actual author's ID
 
+    # Define the initial publication time for the first chapter
+    initial_published_at = datetime(2021, 3, 10, 1, 0, 0)  # March 10, 2021 at 01:00:00
+
     # Define code injection for the post
     code_injection_head = """
-        
+      
     """
 
+    # Get all markdown files in the current directory
+    markdown_files = [f for f in os.listdir() if f.endswith('.md')]
+
     # Iterate over each markdown file
-    for i in range(1, 11): # Change according how many post you want
+    for i in range(1, 61): # Change according how many post you want
         file_name = f"File {i}.md" # Your markdown filename
         if not os.path.exists(file_name):
             print(f"Markdown file {file_name} not found.")
@@ -97,19 +103,19 @@ def main():
         target_title = f"Chapter {i}" # Your post's title
         target_slug = f"chapter{i:02d}" # Format 01-09
 
+        # Calculate the publication time for the current chapter
+        published_at = initial_published_at + timedelta(seconds=2 * (i - 1))
+
         # Prepare the post data
         post_data = {
             "title": target_title,
             "slug": target_slug,
             "mobiledoc": mobiledoc_content,  # Use 'mobiledoc' field with Markdown card
-            "status": "draft",  # Change status if needed (e.g., "draft")
+            "status": "published",  # Change status if needed (e.g., "draft")
             "tags": [{"name": tag_name}],  # Add tags to the post
             "authors": [{"slug": author_slug}],  # Specify the author by slug
             "codeinjection_head": code_injection_head,  # Inject code into the <head>
-            "published_at": ""  # Set the publication date
-            # "2021-03-03T00:00:00.000Z" (March 3, 2021, at 00:00 UTC)
-            # "2022-12-25T08:30:00.000Z" (December 25, 2022, at 08:30 UTC)
-            # "2023-10-31T23:59:59.000Z" (October 31, 2023, at 23:59:59 UTC)
+            "published_at": published_at.strftime("%Y-%m-%dT%H:%M:%S.000Z")  # Set the publication date
         }
 
         # Create the post
