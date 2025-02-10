@@ -5,6 +5,8 @@ from datetime import datetime
 # Ghost API credentials
 GHOST_API_URL = "https://localhost:2368/ghost/api/admin/"
 ADMIN_API_KEY = ""  # Replace with your actual Admin API key
+TAG_SLUG = ""  # Replace with the tag slug you want to filter by
+TITLE_KEYWORD = ""  # Replace with the keyword you want to search in the title
 
 # Function to generate JWT token
 def generate_ghost_token(api_key):
@@ -13,14 +15,14 @@ def generate_ghost_token(api_key):
     header = {'alg': 'HS256', 'typ': 'JWT', 'kid': id}
     payload = {
         'iat': iat,
-        'exp': iat + 10 * 60,  # Token expires in 1 minute
+        'exp': iat + 5 * 60,  # Token expires in 5 minutes
         'aud': '/admin/'
     }
     token = jwt.encode(payload, bytes.fromhex(secret), algorithm='HS256', headers=header)
     return token
 
-# Function to fetch all posts (with pagination support)
-def fetch_all_posts(token):
+# Function to fetch posts filtered by tag (with pagination support)
+def fetch_posts_by_tag(token, tag_slug):
     url = f"{GHOST_API_URL}posts/"
     headers = {
         "Authorization": f"Ghost {token}",
@@ -31,7 +33,8 @@ def fetch_all_posts(token):
     while True:
         params = {
             "page": page,
-            "limit": 15  # Ghost API default limit
+            "limit": 15,  # Ghost API default limit
+            "filter": f"tag:{tag_slug}"  # Filter posts by tag
         }
         response = requests.get(url, headers=headers, params=params)
         if response.status_code == 200:
@@ -63,26 +66,25 @@ def main():
     # Generate the JWT token
     token = generate_ghost_token(ADMIN_API_KEY)
     
-    # Fetch all posts (with pagination)
-    posts = fetch_all_posts(token)
-    print(f"Total posts fetched: {len(posts)}")
+    # Fetch posts filtered by tag
+    posts = fetch_posts_by_tag(token, TAG_SLUG)
+    print(f"Total posts fetched with tag '{TAG_SLUG}': {len(posts)}")
     
-    # Filter posts with tag slug "" and title containing ""
+    # Filter posts with title containing the keyword
     target_posts = [
         post for post in posts 
-        if any(tag["slug"] == "" for tag in post.get("tags", [])) 
-        and "" in post["title"]
+        if TITLE_KEYWORD.lower() in post["title"].lower()
     ]
     
-    print(f"Posts with tag '' and title containing '': {len(target_posts)}")
+    print(f"Posts with tag '{TAG_SLUG}' and title containing '{TITLE_KEYWORD}': {len(target_posts)}")
     
     if not target_posts:
-        print("No posts with tag '' and title containing '' found.")
+        print(f"No posts with tag '{TAG_SLUG}' and title containing '{TITLE_KEYWORD}' found.")
         return
     
     # Delete each target post
     for post in target_posts:
-        delete_post(post["id"], post["title"], token)  # Pass post_title to the delete_post function
+        delete_post(post["id"], post["title"], token)
 
 if __name__ == "__main__":
     main()
