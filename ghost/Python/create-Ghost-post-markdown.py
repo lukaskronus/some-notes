@@ -3,6 +3,7 @@ import requests
 import jwt  # pip install pyjwt
 from datetime import datetime, timedelta
 import json  # Import the json module to serialize mobiledoc
+import re  # Import regex for filename parsing
 
 # Ghost API credentials
 GHOST_API_URL = "https://localhost:2368/ghost/api/admin/"
@@ -62,6 +63,13 @@ def create_post(post_data, token):
     else:
         print(f"Failed to create post. Status code: {response.status_code}, Response: {response.text}")
 
+# Function to extract book and chapter numbers from filename
+def extract_numbers(filename):
+    match = re.match(r"^(\d+)-(\d+)\.md$", filename)
+    if match:
+        return int(match.group(1)), int(match.group(2))  # Return book and chapter numbers
+    return None
+
 # Main function to process markdown files and create posts
 def main():
     # Generate the JWT token
@@ -72,26 +80,33 @@ def main():
 
     # Define the author information (either by ID or slug)
     author_slug = ""  # Replace with the actual author's slug (e.g., username)
-    # OR
-    # author_id = "1234567890abcdef12345678"  # Replace with the actual author's ID
 
     # Define the initial publication time for the first chapter
-    initial_published_at = datetime(2021, 3, 10, 1, 0, 0)  # March 10, 2021 at 01:00:00
+    initial_published_at = datetime(2021, 3, 12, 1, 0, 0)  # March 12, 2021 at 01:00:00
 
     # Define code injection for the post
     code_injection_head = """
-      
+
     """
 
     # Get all markdown files in the current directory
     markdown_files = [f for f in os.listdir() if f.endswith('.md')]
 
+    # Sort files numerically by book and chapter numbers
+    markdown_files_sorted = sorted(
+        markdown_files,
+        key=lambda x: extract_numbers(x) or (0, 0)  # Sort by (book, chapter) or (0, 0) if invalid
+    )
+
     # Iterate over each markdown file
-    for i in range(1, 61): # Change according how many post you want
-        file_name = f"File {i}.md" # Your markdown filename
-        if not os.path.exists(file_name):
-            print(f"Markdown file {file_name} not found.")
+    for file_name in markdown_files_sorted:
+        numbers = extract_numbers(file_name)
+        if not numbers:
+            print(f"Skipping file '{file_name}' (does not match the expected pattern).")
             continue
+
+        # Extract book and chapter numbers from the filename
+        book_number, chapter_number = numbers
 
         # Read the markdown content and strip BOM
         markdown_content = read_markdown_file(file_name)
@@ -99,12 +114,12 @@ def main():
         # Convert markdown to mobiledoc with Markdown card
         mobiledoc_content = markdown_to_mobiledoc(markdown_content)
 
-        # Define the title for the new post
-        target_title = f"Chapter {i}" # Your post's title
-        target_slug = f"chapter{i:02d}" # Format 01-09
+        # Define the title and slug for the new post
+        target_title = f"Chapter {chapter_number}"
+        target_slug = f"chapter{chapter_number:02d}"
 
         # Calculate the publication time for the current chapter
-        published_at = initial_published_at + timedelta(seconds=2 * (i - 1))
+        published_at = initial_published_at + timedelta(seconds=2 * (chapter_number - 1))
 
         # Prepare the post data
         post_data = {
