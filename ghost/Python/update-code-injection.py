@@ -3,9 +3,10 @@ import jwt  # pip install pyjwt
 from datetime import datetime as date
 
 # Replace these with your Ghost blog details
-GHOST_URL = "http://localhost:2368"  # Your Ghost blog URL
-ADMIN_API_KEY = "YOUR_ADMIN_API_KEY"  # Your Ghost Admin API key
-TAG_SLUG = "your-tag-slug"  # The slug of the tag you want to filter by
+GHOST_URL = "https://localhost:2368"  # Your Ghost blog URL
+ADMIN_API_KEY = ""  # Your Ghost Admin API key
+TAG_SLUG = ""  # The slug of the tag you want to filter by
+KEYWORD = ""  # The keyword to search for in the post title
 
 # New code injection to add
 NEW_CODE_INJECTION = """
@@ -48,6 +49,7 @@ def fetch_all_posts_with_tag(ghost_url, jwt_token, tag_slug):
                 break
             page += 1
         else:
+            print(f"Failed to fetch posts. Status code: {response.status_code}, Response: {response.text}")
             break
 
     return all_posts
@@ -55,6 +57,7 @@ def fetch_all_posts_with_tag(ghost_url, jwt_token, tag_slug):
 # Function to update code injection for a post
 def update_code_injection(ghost_url, jwt_token, post, code_injection):
     post_id = post.get('id')
+    post_title = post.get('title', 'Untitled')  # Get the post title or default to 'Untitled'
     updated_at = post.get('updated_at')  # Required for validation
 
     if not post_id or not updated_at:
@@ -67,20 +70,29 @@ def update_code_injection(ghost_url, jwt_token, post, code_injection):
     response = requests.put(url, json=data, headers=headers)
 
     if response.status_code == 200:
-        print(f"✅ Updated code injection for post ID: {post_id}")
+        print(f"✅ Updated code injection for post: '{post_title}'")
     else:
-        print(f"❌ Failed to update post ID: {post_id}. Status code: {response.status_code}")
+        print(f"❌ Failed to update post: '{post_title}'. Status code: {response.status_code}")
         print(f"Response: {response.text}")
 
 # Generate the JWT token
 jwt_token = generate_jwt_token(ADMIN_API_KEY)
 
-# Fetch all posts with the specified tag and update code injection
+# Fetch all posts with the specified tag
 posts = fetch_all_posts_with_tag(GHOST_URL, jwt_token, TAG_SLUG)
+
 if posts:
-    print(f"Found {len(posts)} posts with tag '{TAG_SLUG}'. Updating code injection...")
-    for post in posts:
-        update_code_injection(GHOST_URL, jwt_token, post, NEW_CODE_INJECTION)
-    print("🎉 Code injection update completed!")
+    print(f"Found {len(posts)} posts with tag '{TAG_SLUG}'.")
+
+    # Filter posts by keyword in title
+    matching_posts = [post for post in posts if KEYWORD.lower() in post.get('title', '').lower()]
+
+    if matching_posts:
+        print(f"Found {len(matching_posts)} posts with tag '{TAG_SLUG}' and keyword '{KEYWORD}' in the title. Updating code injection...")
+        for post in matching_posts:
+            update_code_injection(GHOST_URL, jwt_token, post, NEW_CODE_INJECTION)
+        print("🎉 Code injection update completed!")
+    else:
+        print(f"⚠️ No posts found with tag '{TAG_SLUG}' and keyword '{KEYWORD}' in the title.")
 else:
     print(f"⚠️ No posts found with tag '{TAG_SLUG}'.")
