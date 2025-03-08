@@ -195,116 +195,111 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@glidejs/glide/dist/glide.min.js"></script>
 <script>
-  (() => {
-    // Base64 encoded image links
-    const encodedImageLinks = [
-      // Add your base64 encoded image URLs here
-    ];
+(() => {
+  // Base64 encoded image links (to be populated)
+  const encodedImageLinks = [
 
-    // Function to decode base64 URL
-    function decodeBase64URL(encoded) {
-      return atob(encoded);
-    }
+  ];
 
-    // Function to generate slides
-    function generateSlides() {
-      const slidesContainer = document.getElementById("slidesContainer");
-      encodedImageLinks.forEach(encodedLink => {
-        const slide = document.createElement("div");
-        slide.classList.add("glide__slide");
-        const img = document.createElement("img");
-        img.src = decodeBase64URL(encodedLink);
-        img.loading = "lazy";
-        img.draggable = false;
-        slide.appendChild(img);
-        slidesContainer.appendChild(slide);
-      });
-    }
+  // Decode Base64 URL
+  const decodeBase64URL = encoded => atob(encoded);
 
-    // Function to initialize Glide carousel
-    function initializeCarousel() {
-      return new Glide(".glide", {
-        type: "carousel",
-        startAt: 0,
-        perView: 1,
-        focusAt: "center",
-        gap: 0,
-        autoplay: false,
-        dragThreshold: 50,
-        touchRatio: 1,
-        touchAngle: 45,
-        animationDuration: 300,
-        rewindDuration: 300,
-        throttle: 50
-      }).mount();
-    }
+  // Generate slides efficiently using a document fragment
+  const generateSlides = () => {
+    const slidesContainer = document.getElementById("slidesContainer");
+    const fragment = document.createDocumentFragment();
+    encodedImageLinks.forEach(encodedLink => {
+      const slide = document.createElement("div");
+      slide.classList.add("glide__slide");
+      const img = document.createElement("img");
+      img.src = decodeBase64URL(encodedLink);
+      img.loading = "lazy";
+      img.draggable = false;
+      slide.appendChild(img);
+      fragment.appendChild(slide);
+    });
+    slidesContainer.appendChild(fragment);
+  };
 
-    // Function to setup carousel controls
-    function setupControls(glide) {
-      const controls = {
-        prev: document.getElementById("prevButton"),
-        next: document.getElementById("nextButton"),
-        go: document.getElementById("goButton"),
-        input: document.getElementById("imageInput"),
-        fullscreen: document.querySelector(".fullscreen-button"),
-        container: document.querySelector(".carousel-container")
-      };
+  // Initialize Glide carousel with streamlined options
+  const initializeCarousel = () => new Glide(".glide", {
+    type: "carousel",
+    startAt: 0,
+    perView: 1,
+    focusAt: "center",
+    gap: 0,
+    autoplay: false,
+    dragThreshold: 50,
+    touchRatio: 1,
+    animationDuration: 300,
+    rewindDuration: 300
+  }).mount();
 
-      // Fullscreen handling
-      controls.fullscreen.addEventListener("click", () => {
-        if (!document.fullscreenElement) {
-          controls.container.requestFullscreen()
-            .then(() => glide.update())
-            .catch(err => console.error("Fullscreen error:", err));
-        } else {
-          document.exitFullscreen()
-            .then(() => glide.update())
-            .catch(err => console.error("Exit fullscreen error:", err));
-        }
-      });
+  // Setup carousel controls
+  const setupControls = glide => {
+    const controls = {
+      prev: document.getElementById("prevButton"),
+      next: document.getElementById("nextButton"),
+      go: document.getElementById("goButton"),
+      input: document.getElementById("imageInput"),
+      fullscreen: document.querySelector(".fullscreen-button"),
+      container: document.querySelector(".carousel-container")
+    };
 
-      document.addEventListener("fullscreenchange", () => {
-        controls.fullscreen.textContent = document.fullscreenElement ? "⎋" : "⛶";
-        glide.update();
-      });
+    // Fullscreen handling simplified
+    controls.fullscreen.addEventListener("click", () => {
+      if (!document.fullscreenElement) {
+        controls.container.requestFullscreen().catch(err => console.error("Fullscreen error:", err));
+      } else {
+        document.exitFullscreen().catch(err => console.error("Exit fullscreen error:", err));
+      }
+    });
 
-      // Navigation controls
-      controls.prev.addEventListener("click", () => glide.go("<"));
-      controls.next.addEventListener("click", () => glide.go(">"));
+    document.addEventListener("fullscreenchange", () => {
+      controls.fullscreen.textContent = document.fullscreenElement ? "⎋" : "⛶";
+      glide.update();
+    });
 
-      // Go to slide functionality
-      controls.go.addEventListener("click", () => {
-        const inputVal = parseInt(controls.input.value, 10);
-        if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= encodedImageLinks.length) {
-          glide.go(`=${inputVal - 1}`);
-        } else {
-          alert(`Please enter a valid number between 1 and ${encodedImageLinks.length}`);
-          controls.input.value = glide.index + 1;
-        }
-      });
+    // Navigation controls
+    controls.prev.addEventListener("click", () => glide.go("<"));
+    controls.next.addEventListener("click", () => glide.go(">"));
 
-      // Update input value on slide change
-      glide.on("run.after", () => {
+    // Go to slide functionality
+    controls.go.addEventListener("click", () => {
+      const inputVal = parseInt(controls.input.value, 10);
+      if (!isNaN(inputVal) && inputVal >= 1 && inputVal <= encodedImageLinks.length) {
+        glide.go(`=${inputVal - 1}`);
+      } else {
+        alert(`Please enter a valid number between 1 and ${encodedImageLinks.length}`);
         controls.input.value = glide.index + 1;
-      });
+      }
+    });
 
-      // Input validation
-      controls.input.addEventListener("input", () => {
-        controls.input.value = controls.input.value.replace(/[^0-9]/g, "");
-      });
+    // Update input value on slide change
+    glide.on("run.after", () => {
+      controls.input.value = glide.index + 1;
+    });
 
-      // Handle window resize
-      window.addEventListener("resize", () => glide.update());
-    }
+    // Input validation
+    controls.input.addEventListener("input", () => {
+      controls.input.value = controls.input.value.replace(/[^0-9]/g, "");
+    });
 
-    // Main function to initialize everything
-    function init() {
-      generateSlides();
-      const glide = initializeCarousel();
-      setupControls(glide);
-    }
+    // Handle window resize
+    window.addEventListener("resize", () => glide.update());
+  };
 
-    // Initialize the carousel
-    init();
-  })();
+  // Initialize everything
+  const init = () => {
+    generateSlides();
+    const glide = initializeCarousel();
+    setupControls(glide);
+    // Prevent right-click on carousel only
+    const carouselContainer = document.querySelector(".carousel-container");
+    carouselContainer.addEventListener("contextmenu", event => event.preventDefault());
+  };
+
+  // Start the carousel
+  init();
+})();
 </script>
