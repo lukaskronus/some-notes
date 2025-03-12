@@ -22,7 +22,7 @@ def generate_ghost_token(api_key):
     token = jwt.encode(payload, bytes.fromhex(secret), algorithm='HS256', headers=header)
     return token
 
-# Function to fetch posts filtered by tag (with pagination support)
+# Function to fetch posts filtered by tag (with pagination support) - MODIFIED TO INCLUDE AUTHORS
 def fetch_posts_by_tag(token, tag_slug):
     url = f"{GHOST_API_URL}posts/"
     headers = {
@@ -36,8 +36,8 @@ def fetch_posts_by_tag(token, tag_slug):
             "page": page,
             "limit": 15,
             "filter": f"tag:{tag_slug}",
-            "formats": "html",  # ← THIS IS CRUCIAL TO GET CONTENT
-            "include": "tags"     # ← THIS ENSURES TAGS ARE INCLUDED
+            "formats": "html",
+            "include": "tags,authors"  # ← ADDED AUTHORS TO INCLUDE
         }
         response = requests.get(url, headers=headers, params=params)
         if response.status_code == 200:
@@ -68,7 +68,7 @@ def save_post_to_markdown(post, output_dir="output"):
         date_str = "no-date"
     
     slug = post['slug']
-    filename = f"{date_str}-{slug}.md"
+    filename = f"{slug}.md"
     filepath = os.path.join(output_dir, filename)
     
     # Get HTML content - some posts might use mobiledoc instead
@@ -84,16 +84,23 @@ def save_post_to_markdown(post, output_dir="output"):
     converter.body_width = 0
     markdown_content = converter.handle(html_content)
     
-    # Create front matter
-    front_matter = f"""---
-title: "{post['title']}"
-date: {published_at}
-slug: {slug}
-status: {post.get('status', 'unknown')}
-tags: {[tag['name'] for tag in post.get('tags', [])]}
----
+ # MODIFIED FRONT MATTER GENERATION
+    front_matter_lines = [
+        f'title: "{post["title"]}"',
+        f'date: {published_at}',
+        f'slug: {slug}',
+        f'tags: {[tag["name"] for tag in post.get("tags", [])]}',
+        f'authors: {[author["name"] for author in post.get("authors", [])]}'
+    ]
+    
+    # Conditionally add feature_image
+    if feature_image := post.get('feature_image'):
+        front_matter_lines.append(f'feature_image: "{feature_image}"')
+    
+    # Combine front matter lines
+    front_matter = '---\n' + '\n'.join(front_matter_lines) + '\n---\n'
+# status: {post.get('status', 'unknown')}
 
-"""
     # Combine front matter and content
     full_content = front_matter + markdown_content
     
