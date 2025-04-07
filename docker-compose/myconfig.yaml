@@ -1,0 +1,49 @@
+services:
+  rtsptoweb:
+    image: ghcr.io/deepch/rtsptoweb:latest
+    container_name: rtspweb
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    volumes:
+      - "$PWD/config.json:/config/config.json"
+    networks:
+      hiroseaki:
+        ipv4_address: 192.168.96.2
+
+#services:
+  vaultwarden:
+    image: ghcr.io/dani-garcia/vaultwarden:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      DOMAIN: ""
+      SIGNUPS_ALLOWED: "false"
+      INVITATIONS_ALLOWED: "false"
+      DATABASE_URL: ""
+    volumes:
+      - "$PWD/vw-data:/data"
+    networks:
+      hiroseaki:
+        ipv4_address: 192.168.96.3
+
+#services:
+  alist:
+    image: 'xhofe/alist:beta'
+    container_name: alist
+    volumes:
+      - '$PWD/alist:/opt/alist/data'
+    ports:
+      - '5244:5244'
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - UMASK=022
+    restart: unless-stopped
+    networks:
+      hiroseaki:
+        ipv4_address: 192.168.96.4
+
+networks:
+  hiroseaki:
+    external: true
