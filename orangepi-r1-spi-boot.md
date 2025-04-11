@@ -33,7 +33,6 @@ git clone --depth=1 --branch=v24.11 https://github.com/armbian/build
 cd build
 ./compile.sh BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_MINIMAL="yes" BUILD_DESKTOP="no" uboot-config
 # Select Device Drivers -> MTD Device -> SPI flash -> Macronix
-# Select Device Drivers -> USB Support -> Check USB3 xHCI
 ```
 
 3. Create a new `orangepi-r1-expansion-board.patch` file in `userpatches/u-boot/u-boot-sunxi/` (`userpatches` will be available after first run `./compile.sh` command)
@@ -73,26 +72,84 @@ cd build
   vqmmc-supply = <&reg_vcc3v3>;
 ```
 
-4. Create another patch `orangepi-r1-add-support-usb3.patch` (enable booting from USB 3.0 flash drive)
+4. (Optional) Another dts patch with power supply pin (according 26-pi layout on Orange Pi R1). This patch can replace the above one.
 ```diff
---- a/configs/orangepi_r1_defconfig
-+++ b/configs/orangepi_r1_defconfig
-@@ -9,8 +9,10 @@
- # CONFIG_SYS_MALLOC_CLEAR_ON_INIT is not set
- CONFIG_CONSOLE_MUX=y
- CONFIG_MTD=y
-+CONFIG_SPI_FLASH_MACRONIX=y
- CONFIG_SPI_FLASH_WINBOND=y
- CONFIG_SUN8I_EMAC=y
- CONFIG_SPI=y
-+CONFIG_USB_XHCI_HCD=y
- CONFIG_USB_EHCI_HCD=y
- CONFIG_USB_OHCI_HCD=y
+--- a/arch/arm/dts/sun8i-h2-plus-orangepi-r1.dts
++++ b/arch/arm/dts/sun8i-h2-plus-orangepi-r1.dts
+@@ -64,6 +64,24 @@
+                gpio = <&pio 0 20 GPIO_ACTIVE_HIGH>;
+        };
+
++       /* VBUS regulator for USB2 on expansion board */
++       reg_vcc_usb2: reg-vcc-usb2 {
++               compatible = "regulator-fixed";
++               regulator-min-microvolt = <5000000>;
++               regulator-max-microvolt = <5000000>;
++               regulator-name = "vcc-usb2";
++               vin-supply = <&reg_vcc5v0>; /* Assuming 5V from GPIO header */
++       };
++
++       /* VBUS regulator for USB3 on expansion board */
++       reg_vcc_usb3: reg-vcc-usb3 {
++               compatible = "regulator-fixed";
++               regulator-min-microvolt = <5000000>;
++               regulator-max-microvolt = <5000000>;
++               regulator-name = "vcc-usb3";
++               vin-supply = <&reg_vcc5v0>; /* Assuming 5V from GPIO header */
++       };
++
+        aliases {
+                ethernet1 = &rtl8189etv;
+        };
+@@ -77,6 +95,17 @@
+        };
+ };
+
++/* Enable USB2 port on expansion board */
++&ehci2 {
++       status = "okay";
++};
++
++/* Enable USB3 port on expansion board */
++&ehci3 {
++       status = "okay";
++};
++
++/* OHCI for USB2 low/full-speed devices */
+ &ohci1 {
+        /*
+         * RTL8152B USB-Ethernet adapter is connected to USB1,
+@@ -86,6 +115,15 @@
+        status = "disabled";
+ };
+
++/* OHCI for USB2 on expansion board */
++&ohci2 {
++       status = "okay";
++};
++
++/* OHCI for USB3 on expansion board */
++&ohci3 {
++       status = "okay";
++};
+ &mmc1 {
+        vmmc-supply = <&reg_vcc3v3>;
+        vqmmc-supply = <&reg_vcc3v3>;
+@@ -97,4 +135,9 @@
+
+ &usbphy {
+        usb1_vbus-supply = <&reg_vcc_usb_eth>;
++       usb2_vbus-supply = <&reg_vcc_usb2>;
++       usb3_vbus-supply = <&reg_vcc_usb3>;
+ };
++
++/* Reference to 5V supply, assumed available from GPIO header */
++&reg_vcc5v0 {};
 ```
 
 5. Compile uboot and the compiled uboot is in `output/debs/linux-u-boot-*`
 ```bash
-./compile.sh BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_MINIMAL="yes" BUILD_DESKTOP="no" uboot
+./compile.sh CLEAN_LEVEL="debs,alldebs" BOARD="orangepi-r1" BRANCH="current" RELEASE="bookworm" BUILD_MINIMAL="yes" BUILD_DESKTOP="no" uboot
 ```
    
 ## Connect serial debug USB
