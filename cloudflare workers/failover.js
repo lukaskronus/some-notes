@@ -180,20 +180,33 @@ export default {
 };
 
 async function checkReachable(domain) {
-  try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 5000); // 5-second timeout
+  const methods = ['HEAD', 'GET'];
 
-    const response = await fetch(`https://${domain}`, {
-      method: 'HEAD',
-      signal: controller.signal,
-    });
+  for (const method of methods) {
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), 5000); // 5-second timeout
 
-    return response.ok;
-  } catch (error) {
-    console.log(`[${new Date().toISOString()}] Reachability check failed: ${error.message}`);
-    return false;
+      const response = await fetch(`https://${domain}`, {
+        method,
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        },
+      });
+
+      if (response.ok) {
+        console.log(`[${new Date().toISOString()}] ${method} request succeeded: ${response.status}`);
+        return true;
+      } else {
+        console.log(`[${new Date().toISOString()}] ${method} request failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.log(`[${new Date().toISOString()}] ${method} request failed: ${error.message}`);
+    }
   }
+  return false;
 }
 
 async function getDnsRecord(zoneId, domain, headers) {
