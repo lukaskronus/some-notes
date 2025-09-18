@@ -1,38 +1,39 @@
 /**
- * Cloudflare Worker for DNS-based failover between two Cloudflare Tunnels with rate limiting awareness, Telegram notifications,
- * proactive switch-back to Tunnel 1, and KV namespace for state tracking.
- * Scheduled to run every 3 minutes to check reachability and switch tunnels if necessary.
- * Uses Cloudflare API to pre-check Tunnel 1's health before switch-back and Tunnel 2's health before failover, avoiding downtime and unnecessary API calls.
- * Modified checkReachable to use GET method for broader compatibility with websites.
- *
- * Prerequisites:
- * - Bind the following secrets to the Worker environment:
- *   - CLOUDFLARE_API_TOKEN: API token with permissions for Zone:DNS:Edit, Account:Cloudflare Tunnel:Edit, and Account:Cloudflare Tunnel:Read.
- *   - ACCOUNT_ID: Your Cloudflare account ID.
- *   - ZONE_ID: The zone ID for the domain.
- *   - TUNNEL1_ID: The tunnel ID for the primary tunnel.
- *   - TUNNEL2_ID: The tunnel ID for the secondary tunnel.
- *   - SERVICE_URL: The internal service URL
- *   - TELEGRAM_BOT_TOKEN: Telegram bot token from @BotFather.
- *   - TELEGRAM_CHAT_ID: Telegram chat ID for notifications.
- * - Bind the KV namespace:
- *   - Namespace: FAILOVER_STATE
- *   - Variable name: FAILOVER_STATE
- * - Deploy with a cron trigger
- */
+# Required variables
+CLOUDFLARE_API_TOKEN="your-cloudflare-api-token"
+ACCOUNT_ID="your-cloudflare-account-id"
+TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
+TELEGRAM_CHAT_ID="your-telegram-chat-id"
+
+# Multi-domain configuration (JSON format)
+DOMAINS_CONFIG='[
+  {
+    "domain": "app1.example.com",
+    "zoneId": "zone_id_1",
+    "serviceUrl": "http://localhost:3000",
+    "tunnels": ["tunnel1_id", "tunnel2_id", "tunnel3_id"]
+  },
+  {
+    "domain": "app2.example.com", 
+    "zoneId": "zone_id_2",
+    "serviceUrl": "http://localhost:3001",
+    "tunnels": ["tunnel4_id", "tunnel5_id"]
+  },
+  {
+    "domain": "app3.example.com",
+    "zoneId": "zone_id_3", 
+    "serviceUrl": "http://localhost:3002",
+    "tunnels": ["tunnel6_id", "tunnel7_id", "tunnel8_id", "tunnel9_id"]
+  }
+]'
+*/
 
 export default {
   async scheduled(event, env, ctx) {
-    const domain = 'application.example.com';
-    const serviceUrl = env.SERVICE_URL;
     const accountId = env.ACCOUNT_ID;
-    const zoneId = env.ZONE_ID;
-    const tunnel1Id = env.TUNNEL1_ID;
-    const tunnel2Id = env.TUNNEL2_ID;
-    const tunnel1Cname = `${tunnel1Id}.cfargotunnel.com`;
-    const tunnel2Cname = `${tunnel2Id}.cfargotunnel.com`;
     const telegramBotToken = env.TELEGRAM_BOT_TOKEN;
     const telegramChatId = env.TELEGRAM_CHAT_ID;
+    const domainsConfig = JSON.parse(env.DOMAINS_CONFIG);
 
     const headers = {
       'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
@@ -40,198 +41,239 @@ export default {
     };
 
     const getTimestamp = () => new Date().toISOString();
+    const log = (message) => console.log(`[${getTimestamp()}] ${message}`);
 
-    try {
-      // Ensure both tunnels have the public hostname configured
-      await ensureTunnelRule(accountId, tunnel1Id, domain, serviceUrl, headers);
-      await ensureTunnelRule(accountId, tunnel2Id, domain, serviceUrl, headers);
-
-      // Check current tunnel state from KV
-      let tunnelState = await env.FAILOVER_STATE.get('tunnel_state') || 'preferred';
-
-      // Step 1: Check if the domain is reachable
-      const initialReachable = await checkReachable(`https://${domain}`);
-      if (initialReachable && tunnelState === 'failover') {
-        // Domain is on Tunnel 2 and reachable; check Tunnel 1's health before switching
-        const message = `[${getTimestamp()}] Domain ${domain} is reachable on Tunnel 2. Checking Tunnel 1's health before switch-back.`;
-        console.log(message);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, message);
-
-        // Pre-check Tunnel 1's health via API
-        const tunnel1Healthy = await checkTunnelHealth(accountId, tunnel1Id, headers);
-        if (!tunnel1Healthy) {
-          const failMessage = `[${getTimestamp()}] Tunnel 1 (ID: ${tunnel1Id}) is not healthy. Aborting switch-back to Tunnel 1.`;
-          console.log(failMessage);
-          await sendTelegramNotification(telegramBotToken, telegramChatId, failMessage);
-          return;
-        }
-
-        const switchMessage = `[${getTimestamp()}] Tunnel 1 (ID: ${tunnel1Id}) is healthy. Initiating switch-back to Tunnel 1.`;
-        console.log(switchMessage);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, switchMessage);
-
-        const dnsRecord = await getDnsRecord(zoneId, domain, headers);
-        if (dnsRecord.content === tunnel1Cname) {
-          console.log(`[${getTimestamp()}] Already on Tunnel 1. Updating state to preferred.`);
-          await env.FAILOVER_STATE.put('tunnel_state', 'preferred');
-          return;
-        }
-
-        await updateDnsRecord(zoneId, dnsRecord.id, tunnel1Cname, headers);
-
-        const dnsSwitchMessage = `[${getTimestamp()}] Switched DNS to ${tunnel1Cname} (Tunnel ${tunnel1Id}).`;
-        console.log(dnsSwitchMessage);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, dnsSwitchMessage);
-
-        await new Promise(resolve => setTimeout(resolve, 60000));
-        let reachableAfter = await checkReachable(`https://${domain}`);
-        let recheckAttempts = 1;
-        while (!reachableAfter && recheckAttempts < 5) {
-          const recheckDelay = 20000;
-          await new Promise(resolve => setTimeout(resolve, recheckDelay));
-          reachableAfter = await checkReachable(`https://${domain}`);
-          recheckAttempts++;
-          console.log(`[${getTimestamp()}] Switch-back recheck attempt ${recheckAttempts}: ${reachableAfter ? 'reachable' : 'unreachable'}.`);
-        }
-
-        if (!reachableAfter) {
-          const failMessage = `[${getTimestamp()}] Switch-back to Tunnel 1 failed. Reverting to ${tunnel2Cname}.`;
-          console.log(failMessage);
-          await sendTelegramNotification(telegramBotToken, telegramChatId, failMessage);
-          await updateDnsRecord(zoneId, dnsRecord.id, tunnel2Cname, headers);
-          await env.FAILOVER_STATE.put('tunnel_state', 'failover');
-        } else {
-          const successMessage = `[${getTimestamp()}] Switch-back to Tunnel 1 successful after ${recheckAttempts} recheck(s).`;
-          console.log(successMessage);
-          await sendTelegramNotification(telegramBotToken, telegramChatId, successMessage);
-          await env.FAILOVER_STATE.put('tunnel_state', 'preferred');
-        }
-        return;
-      }
-
-      if (initialReachable) {
-        console.log(`[${getTimestamp()}] Domain ${domain} is reachable. No action needed.`);
-        const dnsRecord = await getDnsRecord(zoneId, domain, headers);
-        if (tunnelState !== 'preferred' && dnsRecord.content === tunnel1Cname) {
-          await env.FAILOVER_STATE.put('tunnel_state', 'preferred');
-        }
-        return;
-      }
-
-      const message = `[${getTimestamp()}] Domain ${domain} is unreachable. Initiating failover.`;
-      console.log(message);
-      await sendTelegramNotification(telegramBotToken, telegramChatId, message);
-
-      // Retrieve current DNS record
-      const dnsRecord = await getDnsRecord(zoneId, domain, headers);
-      const previousCname = dnsRecord.content;
-      const previousTunnelId = previousCname === tunnel1Cname ? tunnel1Id : (previousCname === tunnel2Cname ? tunnel2Id : null);
-
-      // Determine target tunnel for switch
-      let newCname;
-      if (previousCname === tunnel1Cname) {
-        newCname = tunnel2Cname;
-      } else if (previousCname === tunnel2Cname) {
-        newCname = tunnel1Cname;
-      } else {
-        newCname = tunnel1Cname;
-        console.log(`[${getTimestamp()}] Unexpected CNAME: ${previousCname}. Defaulting to Tunnel 1.`);
-      }
-
-      const targetTunnelId = newCname === tunnel1Cname ? tunnel1Id : tunnel2Id;
-
-      // Pre-check target tunnel's health via API (for failover to Tunnel 2)
-      const targetHealthy = await checkTunnelHealth(accountId, targetTunnelId, headers);
-      if (!targetHealthy) {
-        const failMessage = `[${getTimestamp()}] Target tunnel ${targetTunnelId} is not healthy. Aborting failover switch.`;
-        console.log(failMessage);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, failMessage);
-        return;
-      }
-
-      const targetMessage = `[${getTimestamp()}] Target tunnel ${targetTunnelId} is healthy. Proceeding with switch.`;
-      console.log(targetMessage);
-      await sendTelegramNotification(telegramBotToken, telegramChatId, targetMessage);
-
-      await updateDnsRecord(zoneId, dnsRecord.id, newCname, headers);
-
-      const switchMessage = `[${getTimestamp()}] Switched DNS to ${newCname} (Tunnel ${targetTunnelId}).`;
-      console.log(switchMessage);
-      await sendTelegramNotification(telegramBotToken, telegramChatId, switchMessage);
-
-      // Step 4: Wait for propagation and recheck
-      await new Promise(resolve => setTimeout(resolve, 60000));
-      let reachableAfter = await checkReachable(`https://${domain}`);
-      let recheckAttempts = 1;
-      while (!reachableAfter && recheckAttempts < 5) {
-        const recheckDelay = 20000;
-        await new Promise(resolve => setTimeout(resolve, recheckDelay));
-        reachableAfter = await checkReachable(`https://${domain}`);
-        recheckAttempts++;
-        console.log(`[${getTimestamp()}] Recheck attempt ${recheckAttempts}: ${reachableAfter ? 'reachable' : 'unreachable'}.`);
-      }
-
-      if (!reachableAfter) {
-        const failMessage = `[${getTimestamp()}] Domain still unreachable after switch. Both tunnels appear down. Reverting to ${previousCname}.`;
-        console.log(failMessage);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, failMessage);
-        await updateDnsRecord(zoneId, dnsRecord.id, previousCname, headers);
-        await env.FAILOVER_STATE.put('tunnel_state', previousCname === tunnel1Cname ? 'preferred' : 'failover');
-      } else {
-        const successMessage = `[${getTimestamp()}] Switch successful after ${recheckAttempts} recheck(s). Domain is now reachable via ${newCname}.`;
-        console.log(successMessage);
-        await sendTelegramNotification(telegramBotToken, telegramChatId, successMessage);
-        await env.FAILOVER_STATE.put('tunnel_state', newCname === tunnel1Cname ? 'preferred' : 'failover');
-      }
-    } catch (error) {
-      const errorMessage = `[${getTimestamp()}] Failover process failed: ${error.message}`;
-      console.error(errorMessage);
-      await sendTelegramNotification(telegramBotToken, telegramChatId, errorMessage);
-    }
+    // Process each domain configuration in parallel
+    await Promise.allSettled(
+      domainsConfig.map(config => 
+        handleDomainFailover(config, accountId, headers, telegramBotToken, telegramChatId, log)
+      )
+    );
   },
 };
 
-async function checkReachable(domain) {
-  const methods = ['HEAD', 'GET'];
+async function handleDomainFailover(config, accountId, headers, telegramBotToken, telegramChatId, log) {
+  const { domain, zoneId, tunnels, serviceUrl } = config;
+  
+  // Generate tunnel CNAMEs
+  const tunnelCnames = tunnels.map(tunnelId => `${tunnelId}.cfargotunnel.com`);
+  
+  log(`Processing domain: ${domain}`);
 
-  for (const method of methods) {
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), 5000); // 5-second timeout
-
-      const response = await fetch(`https://${domain}`, {
-        method,
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        },
-      });
-
-      if (response.ok) {
-        console.log(`[${new Date().toISOString()}] ${method} request succeeded: ${response.status}`);
-        return true;
-      } else {
-        console.log(`[${new Date().toISOString()}] ${method} request failed: ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`[${new Date().toISOString()}] ${method} request failed: ${error.message}`);
+  try {
+    // Step 1: Check if the domain is reachable
+    const isReachable = await checkReachable(`https://${domain}`);
+    
+    if (isReachable) {
+      log(`Domain ${domain} is reachable. No action needed.`);
+      return;
     }
+
+    log(`Domain ${domain} is unreachable. Initiating failover.`);
+    await sendTelegramNotification(
+      telegramBotToken, 
+      telegramChatId, 
+      `Domain ${domain} is unreachable. Initiating failover.`
+    );
+
+    // Step 2: Get current DNS record to determine current tunnel
+    const dnsRecord = await getDnsRecord(zoneId, domain, headers);
+    const currentCname = dnsRecord.content;
+    
+    // Find current tunnel index
+    const currentTunnelIndex = tunnelCnames.findIndex(cname => cname === currentCname);
+    
+    // Determine next healthy tunnel (round-robin)
+    let nextTunnelIndex = -1;
+    let nextTunnelId = null;
+    let nextTunnelCname = null;
+    
+    // Check tunnels in order starting from the next one
+    for (let i = 1; i <= tunnels.length; i++) {
+      const checkIndex = (currentTunnelIndex + i) % tunnels.length;
+      const tunnelId = tunnels[checkIndex];
+      const tunnelHealthy = await checkTunnelHealth(accountId, tunnelId, headers);
+      
+      if (tunnelHealthy) {
+        nextTunnelIndex = checkIndex;
+        nextTunnelId = tunnelId;
+        nextTunnelCname = tunnelCnames[checkIndex];
+        break;
+      }
+    }
+    
+    if (nextTunnelIndex === -1) {
+      const message = `No healthy tunnels found for domain ${domain}. Aborting failover.`;
+      log(message);
+      await sendTelegramNotification(telegramBotToken, telegramChatId, message);
+      return;
+    }
+
+    // Step 3: Add hostname rule to target tunnel
+    await addTunnelRule(accountId, nextTunnelId, domain, serviceUrl, headers);
+    log(`Added hostname rule to tunnel ${nextTunnelId} for domain ${domain}`);
+
+    // Step 4: Update DNS to point to the target tunnel
+    await updateDnsRecord(zoneId, dnsRecord.id, nextTunnelCname, headers);
+    log(`Updated DNS for ${domain} to ${nextTunnelCname}`);
+
+    // Step 5: Remove hostname rule from previous tunnel if it exists
+    if (currentTunnelIndex !== -1) {
+      const currentTunnelId = tunnels[currentTunnelIndex];
+      await removeTunnelRule(accountId, currentTunnelId, domain, headers);
+      log(`Removed hostname rule from tunnel ${currentTunnelId} for domain ${domain}`);
+    }
+
+    const message = `Failover completed for ${domain} to ${nextTunnelCname}`;
+    log(message);
+    await sendTelegramNotification(telegramBotToken, telegramChatId, message);
+
+  } catch (error) {
+    const errorMessage = `Failover process failed for ${domain}: ${error.message}`;
+    log(errorMessage);
+    await sendTelegramNotification(telegramBotToken, telegramChatId, errorMessage);
   }
-  return false;
+}
+
+async function checkReachable(url) {
+  try {
+    const controller = new AbortController();
+    setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const response = await fetch(url, {
+      method: 'GET',
+      signal: controller.signal,
+      redirect: 'follow',
+    });
+    return response.status >= 200 && response.status < 400;
+  } catch (error) {
+    console.log(`[${new Date().toISOString()}] Reachability check failed for ${url}: ${error.message}`);
+    return false;
+  }
 }
 
 async function checkTunnelHealth(accountId, tunnelId, headers) {
   try {
     const response = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/health`,
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}`,
       { headers }
     );
+    
     const data = await response.json();
-    return data.success && data.result.status === 'healthy';
+    
+    if (!data.success) {
+      console.log(`Tunnel API response not successful for ${tunnelId}`);
+      return false;
+    }
+    
+    const tunnel = data.result;
+    console.log(`Tunnel ${tunnelId} status: ${tunnel.status}`);
+    
+    return tunnel.status === 'healthy';
+    
   } catch (error) {
-    console.log(`[${new Date().toISOString()}] Tunnel health check failed for tunnel ${tunnelId}: ${error.message}`);
+    console.log(`Tunnel health check failed for tunnel ${tunnelId}: ${error.message}`);
     return false;
+  }
+}
+
+async function addTunnelRule(accountId, tunnelId, domain, serviceUrl, headers) {
+  try {
+    // Get current tunnel configuration
+    const response = await fetchWithRetry(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
+      { headers }
+    );
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(`Failed to get tunnel config: ${data.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    const config = data.result.config || { ingress: [] };
+    let ingress = config.ingress || [];
+
+    // Remove existing rule for this domain if it exists
+    ingress = ingress.filter(rule => rule.hostname !== domain);
+
+    // Add new rule at the beginning
+    ingress.unshift({
+      hostname: domain,
+      service: serviceUrl,
+      originRequest: {},
+    });
+
+    // Ensure fallback rule exists
+    const hasFallback = ingress.some(rule => !rule.hostname && rule.service === 'http_status:404');
+    if (!hasFallback) {
+      ingress.push({ service: 'http_status:404' });
+    }
+
+    // Update tunnel configuration
+    const updateResponse = await fetchWithRetry(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ config: { ingress } }),
+      }
+    );
+
+    const updateData = await updateResponse.json();
+    if (!updateData.success) {
+      throw new Error(`Failed to update tunnel: ${updateData.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Error adding tunnel rule: ${error.message}`);
+    throw error;
+  }
+}
+
+async function removeTunnelRule(accountId, tunnelId, domain, headers) {
+  try {
+    // Get current tunnel configuration
+    const response = await fetchWithRetry(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
+      { headers }
+    );
+
+    const data = await response.json();
+    if (!data.success) {
+      throw new Error(`Failed to get tunnel config: ${data.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    const config = data.result.config || { ingress: [] };
+    let ingress = config.ingress || [];
+
+    // Remove rule for this domain
+    ingress = ingress.filter(rule => rule.hostname !== domain);
+
+    // Ensure fallback rule exists
+    const hasFallback = ingress.some(rule => !rule.hostname && rule.service === 'http_status:404');
+    if (!hasFallback) {
+      ingress.push({ service: 'http_status:404' });
+    }
+
+    // Update tunnel configuration
+    const updateResponse = await fetchWithRetry(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({ config: { ingress } }),
+      }
+    );
+
+    const updateData = await updateResponse.json();
+    if (!updateData.success) {
+      throw new Error(`Failed to update tunnel: ${updateData.errors?.[0]?.message || 'Unknown error'}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Error removing tunnel rule: ${error.message}`);
+    throw error;
   }
 }
 
@@ -264,54 +306,6 @@ async function updateDnsRecord(zoneId, recordId, newContent, headers) {
 
   if (!data.success) {
     throw new Error(`Failed to update DNS record: ${data.errors?.[0]?.message || 'Unknown error'}`);
-  }
-}
-
-async function ensureTunnelRule(accountId, tunnelId, domain, serviceUrl, headers) {
-  const getResponse = await fetchWithRetry(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-    { headers }
-  );
-
-  const getData = await getResponse.json();
-
-  if (!getData.success) {
-    throw new Error(`Failed to retrieve tunnel configuration: ${getData.errors?.[0]?.message || 'Unknown error'}`);
-  }
-
-  const config = getData.result.config || { ingress: [] };
-  let ingress = config.ingress || [];
-
-  let ruleIndex = ingress.findIndex(rule => rule.hostname === domain);
-  if (ruleIndex === -1) {
-    ingress.unshift({
-      hostname: domain,
-      service: serviceUrl,
-      originRequest: {},
-    });
-  } else if (ingress[ruleIndex].service !== serviceUrl) {
-    ingress[ruleIndex].service = serviceUrl;
-  } else {
-    return;
-  }
-
-  if (!ingress.some(rule => rule.service === 'http_status:404')) {
-    ingress.push({ service: 'http_status:404' });
-  }
-
-  const putResponse = await fetchWithRetry(
-    `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-    {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify({ config: { ingress } }),
-    }
-  );
-
-  const putData = await putResponse.json();
-
-  if (!putData.success) {
-    throw new Error(`Failed to update tunnel configuration: ${putData.errors?.[0]?.message || 'Unknown error'}`);
   }
 }
 
