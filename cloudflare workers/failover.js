@@ -135,20 +135,26 @@ async function handleDomainFailover(config, accountId, headers, telegramBotToken
   }
 }
 
-async function checkReachable(url) {
-  try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 10000); // 10-second timeout
-    const response = await fetch(url, {
-      method: 'GET',
-      signal: controller.signal,
-      redirect: 'follow',
-    });
-    return response.status >= 200 && response.status < 400;
-  } catch (error) {
-    console.log(`[${new Date().toISOString()}] Reachability check failed for ${url}: ${error.message}`);
-    return false;
+async function checkReachable(url, retries = 2, timeout = 10000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      setTimeout(() => controller.abort(), timeout);
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+        redirect: 'follow',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
+        }
+      });
+      return response.status >= 200 && response.status < 400;
+    } catch {
+      if (attempt === retries) return false;
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
+  return false;
 }
 
 async function checkTunnelHealth(accountId, tunnelId, headers) {
