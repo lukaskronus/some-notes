@@ -1,16 +1,18 @@
 ! Title: Youtube Mobile Player
 ! Description: Enable control to Youtube Mobile version
-! Version: 1.0.0
+! Version: 1.0.1
 ! Homepage: https://voz.vn/t/tong-hop-nhung-addon-chat-cho-firefox-chromium.682181/post-33460191
 
-! Defuse background playback prevention
-m.youtube.com##+js(aeld, visibilitychange, /bgmobile|\{\w\.\w+\(\)\}/)
+! ---- Background playback ----
+m.youtube.com##+js(aeld, visibilitychange)
+m.youtube.com##+js(aeld, fullscreenchange)
 
-! Add controls to youtube mobile
-m.youtube.com##+js(aeld, /^(?:pause|play$)/, dispatchEvent, elements, video)
-m.youtube.com##+js(set-attr, video, controls, true)
+! ---- Force native controls on <video> ----
+m.youtube.com##+js(set-attr, video, controls, controls)
+
+! ---- Player overlay layout tweaks ----
 m.youtube.com###player-control-overlay:style(bottom: 90% !important;)
-m.youtube.com##.player-controls-background-container
+m.youtube.com##player-controls-background-container
 m.youtube.com##player-middle-controls
 m.youtube.com##player-bottom-controls
 m.youtube.com##yt-progress-bar:style(top: 0 !important; left: 10px !important; right: 150px !important;)
@@ -20,6 +22,8 @@ m.youtube.com###player-control-overlay.fadein yt-progress-bar:style(visibility: 
 m.youtube.com###player-control-overlay.fadein yt-player-storyboard:style(visibility: visible !important;)
 m.youtube.com###player-control-overlay.fadein .YtPlayerStoryboardHost:style(bottom: -80px !important;)
 m.youtube.com###player-control-overlay[class]:style(pointer-events:all!important)
+
+! ---- Layout / app chrome ----
 m.youtube.com##ytm-cinematic-container-renderer *:style(contain:layout size style;user-select:none;touch-action:none;pointer-events:none)
 m.youtube.com##body:style(overflow-y:scroll!important)
 m.youtube.com##ytm-app:style(padding-bottom:0!important)
@@ -70,9 +74,6 @@ m.youtube.com##.yt-tab-group-shape-wiz__slider,.yt-tab-shape-wiz__tab-bar:style(
 m.youtube.com##ytm-shelf-renderer.vertical-shelf-separators:style(border-top-width:0!important)
 m.youtube.com##.engagement-panel-section-list-header,ytm-comments-header-renderer,ytm-compact-channel-renderer,ytm-item-section-renderer,ytm-shelf-renderer:style(border-color:rgba(50%,50%,50%,.5)!important)
 m.youtube.com##ytm-sign-in-promo-with-background-renderer ytm-promo:style(min-height:calc(100vh - 48px)!important)
+
+! ---- Hide promo / Shorts / ads ----
 m.youtube.com##.interactive-tabbed-header-banner-overlay,.mealbar-promo-renderer,.pivot-shorts,.ytp-paid-content-overlay,ytm-clarification-renderer,ytm-companion-ad-renderer,ytm-info-panel-container-renderer,ytm-promoted-sparkles-text-search-renderer,ytm-promoted-sparkles-web-renderer,ytm-promoted-video-renderer,ytm-reel-shelf-renderer,ytm-watch-metadata-app-promo-renderer:style(display:none!important)
-
-! Force H.264 codec
-! Not working in filterlists
-! youtube.com##+js(trusted-replace-argument, MediaSource.isTypeSupported, 0, 0, condition, /vp0?9|av0?1/)
-
