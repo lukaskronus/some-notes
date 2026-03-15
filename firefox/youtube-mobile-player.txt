@@ -43,7 +43,6 @@ m.youtube.com###player-control-container:not(.ended-mode) .player-controls-middl
 m.youtube.com##.player-controls-bottom
 m.youtube.com##.player-controls-double-tap-to-seek-content
 m.youtube.com##.player-controls-pb
-m.youtube.com##.watch-page-progress-bar
 
 ! --- Promos / Shorts / Ads ---
 m.youtube.com##.interactive-tabbed-header-banner-overlay
