@@ -1,3 +1,6 @@
+# When restarting the service, the settings were lost. Meilisearch rejects any search query trying to filter by that field.
+# After re-create your index, send a POST or PATCH request to the settings endpoint.
+
 curl \
   -X POST 'https://your-meilisearch-domain.com/indexes/openlist/settings' \
   -H 'Content-Type: application/json' \
