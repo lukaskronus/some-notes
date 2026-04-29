@@ -23,19 +23,33 @@ $outlook = $null
 $mail    = $null
 
 try {
-    # ── 1. Connect to Outlook ──────────────────────────────────────────────────
-    # Re-use a running instance so we stay inside the same send queue.
-    try {
-        $outlook = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
-        Write-Host "INFO: Attached to existing Outlook instance."
-    } catch {
-        $outlook = New-Object -ComObject Outlook.Application
-        Write-Host "INFO: Launched new Outlook instance."
+    #  1. Connect to Outlook 
+    # Outlook is always open - we should always be able to attach to it.
+    # Retry up to 5 times in case the previous PowerShell process hasn't fully
+    # released the COM connection yet.
+    $maxAttempts = 5
+    $attempt     = 0
+    $outlook     = $null
+
+    while ($attempt -lt $maxAttempts -and $outlook -eq $null) {
+        try {
+            $outlook = [System.Runtime.InteropServices.Marshal]::GetActiveObject("Outlook.Application")
+            Write-Host "INFO: Attached to existing Outlook instance (attempt $($attempt + 1))."
+        } catch {
+            $attempt++
+            if ($attempt -lt $maxAttempts) {
+                Write-Host "INFO: Outlook COM not ready yet, retrying in 3s... ($attempt/$maxAttempts)"
+                Start-Sleep -Seconds 3
+            } else {
+                throw "ERROR: Could not attach to Outlook after $maxAttempts attempts. Is Outlook open?"
+            }
+        }
     }
 
     $namespace = $outlook.GetNamespace("MAPI")
+    $namespace.Logon($null, $null, $false, $true)   # Ensure MAPI session is fully ready
 
-    # ── 2. Flush the Outbox BEFORE composing a new email ──────────────────────
+    #  2. Flush the Outbox BEFORE composing a new email 
     # This prevents a stuck email from blocking the queue when we re-run.
     $outbox = $namespace.GetDefaultFolder(4)   # 4 = olFolderOutbox
     if ($outbox.Items.Count -gt 0) {
@@ -56,11 +70,20 @@ try {
         }
     }
 
-    # ── 3. Compose the email ──────────────────────────────────────────────────
+    #  3. Compose the email 
     $mail = $outlook.CreateItem(0)   # 0 = olMailItem
 
     $mail.SentOnBehalfOfName = "finance@uuc.edu"
-    $mail.To  = $ToAddress
+
+    # Resolve recipient explicitly to avoid "Outlook does not recognize one or more names"
+    $recipient = $mail.Recipients.Add($ToAddress)
+    $recipient.Type = 1   # 1 = olTo
+    if (-not $recipient.Resolve()) {
+        # If address book resolution fails, force SMTP addressing directly
+        $recipient.Delete()
+        $mail.To = $ToAddress
+    }
+
     $mail.CC  = "registrar@uuc.edu; admissions@uuc.edu; studentaffairs@uuc.edu"
     $mail.BCC = "giang.le@uuc.edu"
     $mail.Subject = "Invoice Notification - $InvoiceId"
@@ -94,25 +117,25 @@ try {
 </html>
 "@
 
-    # ── 4. Send ───────────────────────────────────────────────────────────────
+    #  4. Send 
     $sentFolder      = $namespace.GetDefaultFolder(5)   # 5 = olFolderSentMail
     $sentCountBefore = $sentFolder.Items.Count
 
     $mail.Send()
     Write-Host "INFO: Send() called for $ToAddress (Invoice: $InvoiceId)"
     # NOTE: Once Send() succeeds the mail item is owned by Outlook's queue.
-    # Any error after this point must NOT cause Python to retry — doing so
+    # Any error after this point must NOT cause Python to retry - doing so
     # would send duplicates. We exit 0 immediately after Send() succeeds.
     $mail = $null   # Release reference; Outlook owns it now
 
-    # ── 5. Sync & confirm ─────────────────────────────────────────────────────
+    #  5. Sync & confirm 
     Start-Sleep -Milliseconds 500
 
     try {
         # SendAndReceive lives on the NameSpace object, not Application
         $namespace.SendAndReceive($true)
     } catch {
-        Write-Host "INFO: SendAndReceive skipped — $($_.Exception.Message)"
+        Write-Host "INFO: SendAndReceive skipped - $($_.Exception.Message)"
         # Non-fatal: mail is already queued, just exit success
         exit 0
     }
@@ -131,8 +154,8 @@ try {
     if ($confirmed) {
         Write-Host "SUCCESS: Email delivered for $ToAddress (Invoice: $InvoiceId)"
     } else {
-        Write-Host "WARNING: Could not confirm delivery within 30s for $InvoiceId — check Outbox manually."
-        # Still exit 0 — mail was sent, just unconfirmed. Python must NOT retry.
+        Write-Host "WARNING: Could not confirm delivery within 30s for $InvoiceId - check Outbox manually."
+        # Still exit 0 - mail was sent, just unconfirmed. Python must NOT retry.
         exit 0
     }
 }
@@ -141,16 +164,16 @@ catch {
     exit 1
 }
 finally {
-    # ── 5. Clean COM objects in the right order ───────────────────────────────
+    #  5. Clean COM objects in the right order 
     # Release mail first, then namespace, then outlook.
-    # Never release outlook while a Send is in flight — that's what caused the drops.
+    # Never release outlook while a Send is in flight - that's what caused the drops.
     if ($null -ne $mail) {
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($mail)    | Out-Null
     }
     if ($null -ne $namespace) {
         [System.Runtime.InteropServices.Marshal]::ReleaseComObject($namespace) | Out-Null
     }
-    # Do NOT release $outlook — let the process own it for the session lifetime.
+    # Do NOT release $outlook - let the process own it for the session lifetime.
     # Python will keep the PowerShell process short-lived anyway.
     [System.GC]::Collect()
     [System.GC]::WaitForPendingFinalizers()
