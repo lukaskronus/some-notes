@@ -141,6 +141,20 @@ async function proxyRequest(origin, request) {
 // ─── Main Handler ─────────────────────────────────────────────────────────────
 
 export default {
+
+  // ─── Cron Trigger (same pattern as Script 1) ─────────────────────────────
+  async scheduled(event, env, ctx) {
+    console.log("[Cron] Running periodic health check on all instances");
+
+    for (const instance of INSTANCES) {
+      // Force bypass the cache so cron always does a real check
+      const cacheKey = `https://worker-health-flag/${instance.origin}`;
+      await caches.default.delete(cacheKey);
+
+      ctx.waitUntil(checkAndPatch(instance.origin, instance.name, env, ctx));
+    }
+  },
+  
   async fetch(request, env, ctx) {
 
     // Background config check for both instances on every request cycle
