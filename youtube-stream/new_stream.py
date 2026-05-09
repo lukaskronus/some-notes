@@ -98,6 +98,7 @@ def create_and_bind_broadcast(youtube, stream_id: str, title: str, start_dt: dat
             "contentDetails": {
                 "enableAutoStart": True,
                 "enableAutoStop": True,
+                "enableChat": False,
                 "monitorStream": {"enableMonitorStream": False}
             }
         }
