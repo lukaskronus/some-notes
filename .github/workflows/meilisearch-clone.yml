@@ -2,8 +2,10 @@
 # Clones a Meilisearch instance (Render) to another (Koyeb).
 # Copies all indexes, settings, and documents via Meilisearch HTTP API.
 #
-# ── Setup ───────────────────────────────────────────────────────────────────
-# Add these secrets in repo Settings → Secrets and variables → Actions:
+# ── Setup ────────────────────────────────────────────────────────────────────
+# 1. Create a private GitHub repo (or use an existing one)
+# 2. Add this file at: .github/workflows/meilisearch-clone.yml
+# 3. Add these secrets in repo Settings → Secrets and variables → Actions:
 #
 #    MEILI_SOURCE_ORIGIN    # e.g. https://your-app.onrender.com
 #    MEILI_TARGET_ORIGIN    # e.g. https://your-app.koyeb.app
@@ -12,25 +14,34 @@
 #    TELEGRAM_CHAT_ID       # your personal or group chat ID
 #
 # ── Triggers ─────────────────────────────────────────────────────────────────
-# • Automatic: runs daily at 03:00 UTC
+# • Automatic: runs daily at 03:00 UTC — always clones Render → Koyeb
 # • Manual:    Actions tab → "Meilisearch Clone" → Run workflow
-#              optionally specify a single index name to clone only that one
+#   - index:     clone only this index (leave empty for all)
+#   - direction: "render-to-koyeb" (default) or "koyeb-to-render" for restore after redeployment
 
 name: Meilisearch Clone
 
 on:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * *"   # daily at 03:00 UTC — change to your preferred time
   workflow_dispatch:
     inputs:
       index:
         description: "Index UID to clone (leave empty to clone all indexes)"
         required: false
         default: ""
+      direction:
+        description: "Clone direction: render-to-koyeb (default) or koyeb-to-render (use after Render redeployment wipes its index)"
+        required: false
+        default: "render-to-koyeb"
+        type: choice
+        options:
+          - render-to-koyeb
+          - koyeb-to-render
 
 jobs:
   clone:
-    name: Clone Render → Koyeb
+    name: Clone Meilisearch
     runs-on: ubuntu-latest
     timeout-minutes: 30   # kill the job if it hangs for any reason
 
@@ -38,22 +49,33 @@ jobs:
       - name: Clone Meilisearch index
         uses: actions/github-script@v7
         env:
-          SOURCE_ORIGIN:       ${{ secrets.MEILI_SOURCE_ORIGIN }}
-          TARGET_ORIGIN:       ${{ secrets.MEILI_TARGET_ORIGIN }}
+          RENDER_ORIGIN:       ${{ secrets.MEILI_SOURCE_ORIGIN }}
+          KOYEB_ORIGIN:        ${{ secrets.MEILI_TARGET_ORIGIN }}
           MASTER_KEY:          ${{ secrets.MEILI_MASTER_KEY }}
           TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
           FILTER_INDEX:        ${{ github.event.inputs.index }}
+          DIRECTION:           ${{ github.event.inputs.direction || 'render-to-koyeb' }}
         with:
           script: |
 
             // ── Config ───────────────────────────────────────────────────────
 
-            const SOURCE = { name: "Render", origin: process.env.SOURCE_ORIGIN };
-            const TARGET = { name: "Koyeb",  origin: process.env.TARGET_ORIGIN };
+            const RENDER = { name: "Render", origin: process.env.RENDER_ORIGIN };
+            const KOYEB  = { name: "Koyeb",  origin: process.env.KOYEB_ORIGIN  };
+
+            // Direction: cron always runs render→koyeb; manual can reverse for restore
+            const DIRECTION = process.env.DIRECTION ?? "render-to-koyeb";
+            const SOURCE = DIRECTION === "koyeb-to-render" ? KOYEB  : RENDER;
+            const TARGET = DIRECTION === "koyeb-to-render" ? RENDER : KOYEB;
 
             const MASTER_KEY      = process.env.MASTER_KEY;
             const FILTER_INDEX    = process.env.FILTER_INDEX || null;
+
+            // Minimum documents source must have to proceed — protects against
+            // cloning an empty index after Render redeployment wipes its data.
+            // Cron will abort and alert you instead of overwriting Koyeb.
+            const MIN_SOURCE_DOCS = 1;
 
             const FETCH_PAGE_SIZE  = 500;
             const PUSH_BATCH_SIZE  = 200;
@@ -235,12 +257,14 @@ jobs:
 
             const started = Date.now();
             console.log(`Meilisearch Clone: ${SOURCE.name} → ${TARGET.name}`);
+            console.log(DIRECTION === "koyeb-to-render" ? "Reverse direction — restoring Render from Koyeb" : "Normal direction");
             console.log(FILTER_INDEX ? `Cloning index: ${FILTER_INDEX}` : "Cloning all indexes");
 
             await sendTelegram(
               `⏳ *Meilisearch Clone Started*\n` +
               `From: *${SOURCE.name}* → To: *${TARGET.name}*\n` +
-              (FILTER_INDEX ? `Index: \`${FILTER_INDEX}\`` : `Cloning all indexes`)
+              (DIRECTION === "koyeb-to-render" ? `_Reverse clone — restoring Render from Koyeb_\n` : ``) +
+              (FILTER_INDEX ? `Index: ${FILTER_INDEX}` : `Cloning all indexes`)
             );
 
             try {
@@ -248,13 +272,48 @@ jobs:
 
               if (allIndexes.length === 0) {
                 await sendTelegram(
-                  `⚠️ *Clone Aborted*\n` +
+                  `⚠️ *Clone Aborted — Source Empty*\n` +
                   `No indexes found on *${SOURCE.name}*\n` +
-                  `Is the instance awake and reachable?`
+                  `Instance may be asleep or index was wiped\n` +
+                  (DIRECTION === "render-to-koyeb"
+                    ? `Koyeb was *not* overwritten — it is safe\nTo restore Render: re-trigger with direction koyeb-to-render`
+                    : `Check Koyeb instance health`)
                 );
-                core.setFailed("No indexes found on source");
+                core.setFailed("No indexes on source — aborted to protect target");
                 return;
               }
+
+              // Count total documents on source before proceeding.
+              // If source has 0 docs (e.g. wiped by redeployment), abort
+              // instead of overwriting the target with an empty index.
+              const indexesToCheck = FILTER_INDEX
+                ? allIndexes.filter(i => i.uid === FILTER_INDEX)
+                : allIndexes;
+
+              let totalSourceDocs = 0;
+              for (const idx of indexesToCheck) {
+                const res  = await meiliRequest(
+                  `${SOURCE.origin}/indexes/${idx.uid}/documents?limit=1&offset=0`
+                );
+                const data = await res.json();
+                totalSourceDocs += data.total ?? 0;
+              }
+
+              if (totalSourceDocs < 1) {
+                await sendTelegram(
+                  `⚠️ *Clone Aborted — Source Has No Documents*\n` +
+                  `*${SOURCE.name}* indexes exist but contain 0 documents\n` +
+                  `Possible redeployment wiped the index\n` +
+                  (DIRECTION === "render-to-koyeb"
+                    ? `Koyeb was *not* overwritten — it is safe\nTo restore Render: re-trigger with direction koyeb-to-render`
+                    : `Check Koyeb instance health`)
+                );
+                core.setFailed("Source has 0 documents — aborted to protect target");
+                return;
+              }
+
+              console.log(`Source has ${totalSourceDocs} documents — safe to proceed`);
+
 
               const indexes = FILTER_INDEX
                 ? allIndexes.filter(i => i.uid === FILTER_INDEX)
