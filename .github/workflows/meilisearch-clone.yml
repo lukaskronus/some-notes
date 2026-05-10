@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Clone Meilisearch index
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         env:
           RENDER_ORIGIN:       ${{ secrets.MEILI_SOURCE_ORIGIN }}
           KOYEB_ORIGIN:        ${{ secrets.MEILI_TARGET_ORIGIN }}
