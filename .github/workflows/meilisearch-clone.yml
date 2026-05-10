@@ -1,0 +1,306 @@
+# .github/workflows/meilisearch-clone.yml
+# Clones a Meilisearch instance (Render) to another (Koyeb).
+# Copies all indexes, settings, and documents via Meilisearch HTTP API.
+#
+# ── Setup ───────────────────────────────────────────────────────────────────
+# Add these secrets in repo Settings → Secrets and variables → Actions:
+#
+#    MEILI_SOURCE_ORIGIN    # e.g. https://your-app.onrender.com
+#    MEILI_TARGET_ORIGIN    # e.g. https://your-app.koyeb.app
+#    MEILI_MASTER_KEY       # Meilisearch master key (same on both instances)
+#    TELEGRAM_BOT_TOKEN     # from BotFather
+#    TELEGRAM_CHAT_ID       # your personal or group chat ID
+#
+# ── Triggers ─────────────────────────────────────────────────────────────────
+# • Automatic: runs daily at 03:00 UTC
+# • Manual:    Actions tab → "Meilisearch Clone" → Run workflow
+#              optionally specify a single index name to clone only that one
+
+name: Meilisearch Clone
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    inputs:
+      index:
+        description: "Index UID to clone (leave empty to clone all indexes)"
+        required: false
+        default: ""
+
+jobs:
+  clone:
+    name: Clone Render → Koyeb
+    runs-on: ubuntu-latest
+    timeout-minutes: 30   # kill the job if it hangs for any reason
+
+    steps:
+      - name: Clone Meilisearch index
+        uses: actions/github-script@v7
+        env:
+          SOURCE_ORIGIN:       ${{ secrets.MEILI_SOURCE_ORIGIN }}
+          TARGET_ORIGIN:       ${{ secrets.MEILI_TARGET_ORIGIN }}
+          MASTER_KEY:          ${{ secrets.MEILI_MASTER_KEY }}
+          TELEGRAM_BOT_TOKEN:  ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:    ${{ secrets.TELEGRAM_CHAT_ID }}
+          FILTER_INDEX:        ${{ github.event.inputs.index }}
+        with:
+          script: |
+
+            // ── Config ───────────────────────────────────────────────────────
+
+            const SOURCE = { name: "Render", origin: process.env.SOURCE_ORIGIN };
+            const TARGET = { name: "Koyeb",  origin: process.env.TARGET_ORIGIN };
+
+            const MASTER_KEY      = process.env.MASTER_KEY;
+            const FILTER_INDEX    = process.env.FILTER_INDEX || null;
+
+            const FETCH_PAGE_SIZE  = 500;
+            const PUSH_BATCH_SIZE  = 200;
+            const FETCH_PAGE_DELAY = 500;   // ms between document page fetches (rate limiting)
+            const PUSH_BATCH_DELAY = 300;   // ms between document batch pushes (rate limiting)
+            const INDEX_CREATE_DELAY = 2000; // ms after creating index before proceeding
+            const TASK_POLL_INTERVAL = 1000; // ms between task status polls
+            const TASK_POLL_TIMEOUT  = 30000; // ms max wait for a task to complete
+
+            // ── Helpers ──────────────────────────────────────────────────────
+
+            const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+            function authHeaders() {
+              return {
+                "Authorization": `Bearer ${MASTER_KEY}`,
+                "Content-Type":  "application/json",
+              };
+            }
+
+            async function meiliRequest(url, options = {}, allowedStatuses = []) {
+              const res = await fetch(url, { ...options, headers: authHeaders() });
+              if (!res.ok && !allowedStatuses.includes(res.status)) {
+                const body = await res.text();
+                throw new Error(`${options.method ?? "GET"} ${url} → [${res.status}] ${body}`);
+              }
+              return res;
+            }
+
+            async function waitForTask(origin, taskUid) {
+              const deadline = Date.now() + TASK_POLL_TIMEOUT;
+              while (Date.now() < deadline) {
+                await sleep(TASK_POLL_INTERVAL);
+                const res  = await meiliRequest(`${origin}/tasks/${taskUid}`);
+                const task = await res.json();
+                if (task.status === "succeeded") return task;
+                if (task.status === "failed")
+                  throw new Error(`Task ${taskUid} failed: ${JSON.stringify(task.error)}`);
+              }
+              throw new Error(`Task ${taskUid} timed out after ${TASK_POLL_TIMEOUT}ms`);
+            }
+
+            async function sendTelegram(message) {
+              const token  = process.env.TELEGRAM_BOT_TOKEN;
+              const chatId = process.env.TELEGRAM_CHAT_ID;
+              if (!token || !chatId) return;
+              try {
+                await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+                  method:  "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    chat_id:    chatId,
+                    text:       message,
+                    parse_mode: "Markdown",
+                  }),
+                });
+              } catch (err) {
+                console.log("[Telegram] Failed:", err.message);
+              }
+            }
+
+            // ── Source readers ───────────────────────────────────────────────
+
+            async function fetchIndexList() {
+              const res  = await meiliRequest(`${SOURCE.origin}/indexes?limit=100`);
+              const data = await res.json();
+              return data.results ?? [];
+            }
+
+            async function fetchSettings(indexUid) {
+              const res = await meiliRequest(`${SOURCE.origin}/indexes/${indexUid}/settings`);
+              return res.json();
+            }
+
+            async function fetchAllDocuments(indexUid) {
+              const docs = [];
+              let offset = 0;
+              let done   = false;
+
+              while (!done) {
+                const res  = await meiliRequest(
+                  `${SOURCE.origin}/indexes/${indexUid}/documents?limit=${FETCH_PAGE_SIZE}&offset=${offset}`
+                );
+                const data = await res.json();
+                const page = data.results ?? [];
+
+                docs.push(...page);
+                console.log(`  [${indexUid}] Fetched ${docs.length} documents so far...`);
+
+                if (page.length < FETCH_PAGE_SIZE) {
+                  done = true;
+                } else {
+                  offset += FETCH_PAGE_SIZE;
+                  await sleep(FETCH_PAGE_DELAY);
+                }
+              }
+
+              return docs;
+            }
+
+            // ── Target writers ───────────────────────────────────────────────
+
+            async function ensureIndex(indexUid, primaryKey) {
+              const check = await meiliRequest(
+                `${TARGET.origin}/indexes/${indexUid}`,
+                {},
+                [404]
+              );
+
+              if (check.status === 404) {
+                console.log(`  [${indexUid}] Index missing on target — creating`);
+                const res  = await meiliRequest(`${TARGET.origin}/indexes`, {
+                  method: "POST",
+                  body:   JSON.stringify({ uid: indexUid, primaryKey }),
+                });
+                const task = await res.json();
+                await waitForTask(TARGET.origin, task.taskUid);
+                await sleep(INDEX_CREATE_DELAY);
+              } else {
+                console.log(`  [${indexUid}] Index already exists on target`);
+              }
+            }
+
+            async function applySettings(indexUid, settings) {
+              // Remove read-only fields Meilisearch rejects on PATCH
+              const { displayedAttributes: _d, ...writeable } = settings;
+              const res  = await meiliRequest(
+                `${TARGET.origin}/indexes/${indexUid}/settings`,
+                { method: "PATCH", body: JSON.stringify(writeable) }
+              );
+              const task = await res.json();
+              await waitForTask(TARGET.origin, task.taskUid);
+              console.log(`  [${indexUid}] Settings applied`);
+            }
+
+            async function pushDocuments(indexUid, documents, primaryKey) {
+              let sent = 0;
+              for (let i = 0; i < documents.length; i += PUSH_BATCH_SIZE) {
+                const batch     = documents.slice(i, i + PUSH_BATCH_SIZE);
+                const batchNum  = Math.floor(i / PUSH_BATCH_SIZE) + 1;
+                const res       = await meiliRequest(
+                  `${TARGET.origin}/indexes/${indexUid}/documents?primaryKey=${primaryKey}`,
+                  { method: "POST", body: JSON.stringify(batch) }
+                );
+                const task = await res.json();
+                sent += batch.length;
+                console.log(`  [${indexUid}] Batch ${batchNum} queued — task ${task.taskUid} (${sent}/${documents.length} docs)`);
+                if (i + PUSH_BATCH_SIZE < documents.length) {
+                  await sleep(PUSH_BATCH_DELAY);
+                }
+              }
+              return sent;
+            }
+
+            // ── Core clone ───────────────────────────────────────────────────
+
+            async function cloneIndex(index) {
+              const uid        = index.uid;
+              const primaryKey = index.primaryKey ?? "id";
+
+              console.log(`\n[${uid}] Starting clone — primaryKey: ${primaryKey}`);
+
+              const [settings, documents] = await Promise.all([
+                fetchSettings(uid),
+                fetchAllDocuments(uid),
+              ]);
+
+              console.log(`[${uid}] Fetched ${documents.length} documents from ${SOURCE.name}`);
+
+              await ensureIndex(uid, primaryKey);
+              await applySettings(uid, settings);
+              const sent = await pushDocuments(uid, documents, primaryKey);
+
+              console.log(`[${uid}] Done — ${sent} documents pushed to ${TARGET.name}`);
+              return { uid, documents: sent };
+            }
+
+            // ── Main ─────────────────────────────────────────────────────────
+
+            const started = Date.now();
+            console.log(`Meilisearch Clone: ${SOURCE.name} → ${TARGET.name}`);
+            console.log(FILTER_INDEX ? `Cloning index: ${FILTER_INDEX}` : "Cloning all indexes");
+
+            await sendTelegram(
+              `⏳ *Meilisearch Clone Started*\n` +
+              `From: *${SOURCE.name}* → To: *${TARGET.name}*\n` +
+              (FILTER_INDEX ? `Index: \`${FILTER_INDEX}\`` : `Cloning all indexes`)
+            );
+
+            try {
+              const allIndexes = await fetchIndexList();
+
+              if (allIndexes.length === 0) {
+                await sendTelegram(
+                  `⚠️ *Clone Aborted*\n` +
+                  `No indexes found on *${SOURCE.name}*\n` +
+                  `Is the instance awake and reachable?`
+                );
+                core.setFailed("No indexes found on source");
+                return;
+              }
+
+              const indexes = FILTER_INDEX
+                ? allIndexes.filter(i => i.uid === FILTER_INDEX)
+                : allIndexes;
+
+              if (indexes.length === 0) {
+                await sendTelegram(
+                  `⚠️ *Clone Aborted*\n` +
+                  `Index \`${FILTER_INDEX}\` not found on *${SOURCE.name}*`
+                );
+                core.setFailed(`Index ${FILTER_INDEX} not found on source`);
+                return;
+              }
+
+              const results = [];
+              for (const index of indexes) {
+                const result = await cloneIndex(index);
+                results.push(result);
+              }
+
+              const elapsed      = ((Date.now() - started) / 1000).toFixed(1);
+              const totalDocs    = results.reduce((sum, r) => sum + r.documents, 0);
+              const indexSummary = results
+                .map(r => `• \`${r.uid}\`: ${r.documents} documents`)
+                .join("\n");
+
+              console.log(`\nClone complete in ${elapsed}s — ${totalDocs} total documents`);
+
+              await sendTelegram(
+                `✅ *Meilisearch Clone Complete*\n` +
+                `From: *${SOURCE.name}* → To: *${TARGET.name}*\n` +
+                `Duration: \`${elapsed}s\`\n` +
+                `Total documents: \`${totalDocs}\`\n\n` +
+                `*Indexes cloned:*\n${indexSummary}`
+              );
+
+            } catch (err) {
+              const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+              console.error("Clone failed:", err.message);
+
+              await sendTelegram(
+                `🔴 *Meilisearch Clone Failed*\n` +
+                `From: *${SOURCE.name}* → To: *${TARGET.name}*\n` +
+                `After: \`${elapsed}s\`\n` +
+                `Error: \`${err.message}\``
+              );
+
+              core.setFailed(err.message);
+            }
