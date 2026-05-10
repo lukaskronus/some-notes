@@ -1,359 +1,338 @@
-/**
-# Required variables
-CLOUDFLARE_API_TOKEN="your-cloudflare-api-token"
-ACCOUNT_ID="your-cloudflare-account-id"
-TELEGRAM_BOT_TOKEN="your-telegram-bot-token"
-TELEGRAM_CHAT_ID="your-telegram-chat-id"
-
-# Multi-domain configuration (JSON format)
-DOMAINS_CONFIG='[
-  {
-    "domain": "app1.example.com",
-    "zoneId": "zone_id_1",
-    "serviceUrl": "http://localhost:3000",
-    "tunnels": ["tunnel1_id", "tunnel2_id", "tunnel3_id"]
-  },
-  {
-    "domain": "app2.example.com", 
-    "zoneId": "zone_id_2",
-    "serviceUrl": "http://localhost:3001",
-    "tunnels": ["tunnel4_id", "tunnel5_id"]
-  },
-  {
-    "domain": "app3.example.com",
-    "zoneId": "zone_id_3", 
-    "serviceUrl": "http://localhost:3002",
-    "tunnels": ["tunnel6_id", "tunnel7_id", "tunnel8_id", "tunnel9_id"]
-  }
-]'
-*/
+// openlist-tunnel-failover.js
+// Cloudflare Worker — DNS-based failover between two Cloudflare Tunnels for OpenList.
+// Runs on a cron trigger (recommended: every 3 minutes → */3 * * * *)
+//
+// ── Secrets to add in Workers dashboard → Settings → Variables ──────────────
+// CLOUDFLARE_API_TOKEN  # API token with DNS Edit + Tunnel Read/Write permissions
+// ACCOUNT_ID            # Cloudflare account ID
+// ZONE_ID               # Cloudflare zone ID for your domain
+// TUNNEL1_ID            # Tunnel ID for office server (primary)
+// TUNNEL2_ID            # Tunnel ID for home server  (standby)
+// SERVICE_URL           # Internal service URL tunnels forward to (e.g. http://localhost:3000)
+// DOMAIN                # The public domain to manage (e.g. openlist.mydomain.com)
+// TELEGRAM_BOT_TOKEN    # From BotFather
+// TELEGRAM_CHAT_ID      # Your personal or group chat ID
 
 export default {
   async scheduled(event, env, ctx) {
-    const accountId = env.ACCOUNT_ID;
-    const telegramBotToken = env.TELEGRAM_BOT_TOKEN;
-    const telegramChatId = env.TELEGRAM_CHAT_ID;
-    const domainsConfig = JSON.parse(env.DOMAINS_CONFIG);
-
-    const headers = {
-      'Authorization': `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    };
-
-    const getTimestamp = () => new Date().toISOString();
-    const log = (message) => console.log(`[${getTimestamp()}] ${message}`);
-
-    // Process each domain configuration in parallel
-    await Promise.allSettled(
-      domainsConfig.map(config => 
-        handleDomainFailover(config, accountId, headers, telegramBotToken, telegramChatId, log)
-      )
-    );
+    const manager = new FailoverManager(env);
+    await manager.run();
   },
 };
 
-async function handleDomainFailover(config, accountId, headers, telegramBotToken, telegramChatId, log) {
-  const { domain, zoneId, tunnels, serviceUrl } = config;
-  
-  // Generate tunnel CNAMEs
-  const tunnelCnames = tunnels.map(tunnelId => `${tunnelId}.cfargotunnel.com`);
-  
-  log(`Processing domain: ${domain}`);
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-  try {
-    // Step 1: Check if the domain is reachable
-    const isReachable = await checkReachable(`https://${domain}`);
-    
-    if (isReachable) {
-      log(`Domain ${domain} is reachable. No action needed.`);
+const REACH_TIMEOUT_MS  = 10_000; // per attempt
+const REACH_RETRIES     = 3;
+const REACH_RETRY_DELAY = 2_000;  // ms between reach retries
+const API_RETRY_DELAY   = 1_000;  // ms base delay for API retries (multiplied by attempt)
+const API_MAX_RETRIES   = 3;
+
+// ─── FailoverManager ─────────────────────────────────────────────────────────
+
+class FailoverManager {
+  constructor(env) {
+    // All config from environment — nothing hard-coded
+    this.domain   = env.DOMAIN;
+    this.service  = env.SERVICE_URL;
+    this.account  = env.ACCOUNT_ID;
+    this.zone     = env.ZONE_ID;
+
+    this.tunnels = [
+      { id: env.TUNNEL1_ID, cname: `${env.TUNNEL1_ID}.cfargotunnel.com`, label: "Tunnel-1 (Office/Primary)" },
+      { id: env.TUNNEL2_ID, cname: `${env.TUNNEL2_ID}.cfargotunnel.com`, label: "Tunnel-2 (Home/Standby)"  },
+    ];
+
+    this.headers = {
+      "Authorization": `Bearer ${env.CLOUDFLARE_API_TOKEN}`,
+      "Content-Type":  "application/json",
+    };
+
+    this.telegram = {
+      token:  env.TELEGRAM_BOT_TOKEN,
+      chatId: env.TELEGRAM_CHAT_ID,
+    };
+  }
+
+  // ── Entry Point ─────────────────────────────────────────────────────────────
+
+  async run() {
+    try {
+      const reachable = await this.isDomainReachable();
+
+      if (reachable) {
+        // Site is up — check if we need to recover back to primary
+        await this.checkRecovery();
+        return;
+      }
+
+      // Site is down — start failover
+      await this.notify(`🚨 *${this.domain} is unreachable*\nInitiating failover process…`);
+      await this.failover();
+
+    } catch (err) {
+      await this.notify(`❌ *Failover script error*\n\`${err.message}\``);
+    }
+  }
+
+  // ── Recovery ────────────────────────────────────────────────────────────────
+  // Called when the domain is reachable. If we're currently on standby,
+  // and the primary tunnel is healthy, switch back to primary automatically.
+
+  async checkRecovery() {
+    const dns     = await this.getDnsRecord();
+    const current = this.tunnelByCname(dns.content);
+
+    // Already on primary — nothing to do
+    if (!current || current.id === this.tunnels[0].id) return;
+
+    console.log("[Recovery] On standby, checking if primary is healthy…");
+
+    const primaryHealthy = await this.isTunnelHealthy(this.tunnels[0].id);
+
+    if (!primaryHealthy) {
+      console.log("[Recovery] Primary still unhealthy — staying on standby");
       return;
     }
 
-    log(`Domain ${domain} is unreachable. Initiating failover.`);
-    await sendTelegramNotification(
-      telegramBotToken, 
-      telegramChatId, 
-      `Domain ${domain} is unreachable. Initiating failover.`
+    // Primary is back — switch back
+    console.log("[Recovery] Primary recovered — switching back");
+
+    await this.notify(
+      `🔄 *Primary Tunnel Recovered*\n` +
+      `*${this.tunnels[0].label}* is healthy again\n` +
+      `Switching back from *${current.label}*…`
     );
 
-    // Step 2: Get current DNS record to determine current tunnel
-    const dnsRecord = await getDnsRecord(zoneId, domain, headers);
-    const currentCname = dnsRecord.content;
-    
-    // Find current tunnel index
-    const currentTunnelIndex = tunnelCnames.findIndex(cname => cname === currentCname);
-    
-    // Determine next healthy tunnel (round-robin)
-    let nextTunnelIndex = -1;
-    let nextTunnelId = null;
-    let nextTunnelCname = null;
-    
-    // Check tunnels in order starting from the next one
-    for (let i = 1; i <= tunnels.length; i++) {
-      const checkIndex = (currentTunnelIndex + i) % tunnels.length;
-      const tunnelId = tunnels[checkIndex];
-      const tunnelHealthy = await checkTunnelHealth(accountId, tunnelId, headers);
-      
-      if (tunnelHealthy) {
-        nextTunnelIndex = checkIndex;
-        nextTunnelId = tunnelId;
-        nextTunnelCname = tunnelCnames[checkIndex];
-        break;
+    await this.addTunnelRule(this.tunnels[0].id);
+    await this.updateDnsRecord(dns.id, this.tunnels[0].cname);
+    await this.removeTunnelRule(current.id);
+
+    await this.notify(
+      `✅ *Recovery Complete*\n` +
+      `Traffic restored to *${this.tunnels[0].label}*\n` +
+      `Domain: \`${this.domain}\``
+    );
+  }
+
+  // ── Failover ────────────────────────────────────────────────────────────────
+
+  async failover() {
+    const dns     = await this.getDnsRecord();
+    const current = this.tunnelByCname(dns.content);
+    const target  = current
+      ? this.tunnels.find(t => t.id !== current.id)  // switch to the other one
+      : this.tunnels[0];                              // unknown state → default to primary
+
+    console.log(`[Failover] Current: ${current?.label ?? "unknown"} → Target: ${target.label}`);
+
+    // Verify target is healthy before switching
+    const targetHealthy = await this.isTunnelHealthy(target.id);
+    if (!targetHealthy) {
+      await this.notify(
+        `❌ *Failover Aborted*\n` +
+        `Target *${target.label}* is not healthy\n` +
+        `Both tunnels may be down — manual intervention required`
+      );
+      return;
+    }
+
+    // Execute switchover
+    await this.addTunnelRule(target.id);
+    await this.updateDnsRecord(dns.id, target.cname);
+    if (current) await this.removeTunnelRule(current.id);
+
+    await this.notify(
+      `✅ *Failover Complete*\n` +
+      `From: *${current?.label ?? "unknown"}*\n` +
+      `To: *${target.label}*\n` +
+      `Domain: \`${this.domain}\`\n` +
+      `_Recovery check will run automatically on next cron cycle_`
+    );
+  }
+
+  // ── Domain Reachability ──────────────────────────────────────────────────────
+
+  async isDomainReachable() {
+    // Try both with and without trailing slash to reduce false positives
+    const [a, b] = await Promise.allSettled([
+      this.attemptReach(`https://${this.domain}`),
+      this.attemptReach(`https://${this.domain}/`),
+    ]);
+
+    return (
+      (a.status === "fulfilled" && a.value) ||
+      (b.status === "fulfilled" && b.value)
+    );
+  }
+
+  async attemptReach(url) {
+    for (let attempt = 0; attempt < REACH_RETRIES; attempt++) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), REACH_TIMEOUT_MS);
+
+      try {
+        const res = await fetch(url, {
+          method:   "GET",
+          signal:   controller.signal,
+          redirect: "follow",
+          headers:  {
+            "User-Agent":
+              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+              "AppleWebKit/537.36 (KHTML, like Gecko) " +
+              "Chrome/129.0.0.0 Safari/537.36",
+          },
+        });
+        clearTimeout(timer);
+
+        // Any response under 500 means the tunnel + server are alive
+        if (res.status >= 200 && res.status < 500) return true;
+
+      } catch {
+        clearTimeout(timer);
+      }
+
+      if (attempt < REACH_RETRIES - 1) {
+        await sleep(REACH_RETRY_DELAY);
       }
     }
-    
-    if (nextTunnelIndex === -1) {
-      const message = `No healthy tunnels found for domain ${domain}. Aborting failover.`;
-      log(message);
-      await sendTelegramNotification(telegramBotToken, telegramChatId, message);
-      return;
-    }
 
-    // Step 3: Add hostname rule to target tunnel
-    await addTunnelRule(accountId, nextTunnelId, domain, serviceUrl, headers);
-    log(`Added hostname rule to tunnel ${nextTunnelId} for domain ${domain}`);
-
-    // Step 4: Update DNS to point to the target tunnel
-    await updateDnsRecord(zoneId, dnsRecord.id, nextTunnelCname, headers);
-    log(`Updated DNS for ${domain} to ${nextTunnelCname}`);
-
-    // Step 5: Remove hostname rule from previous tunnel if it exists
-    if (currentTunnelIndex !== -1) {
-      const currentTunnelId = tunnels[currentTunnelIndex];
-      await removeTunnelRule(accountId, currentTunnelId, domain, headers);
-      log(`Removed hostname rule from tunnel ${currentTunnelId} for domain ${domain}`);
-    }
-
-    const message = `Failover completed for ${domain} to ${nextTunnelCname}`;
-    log(message);
-    await sendTelegramNotification(telegramBotToken, telegramChatId, message);
-
-  } catch (error) {
-    const errorMessage = `Failover process failed for ${domain}: ${error.message}`;
-    log(errorMessage);
-    await sendTelegramNotification(telegramBotToken, telegramChatId, errorMessage);
-  }
-}
-
-async function checkReachable(url, retries = 2, timeout = 10000) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const controller = new AbortController();
-      setTimeout(() => controller.abort(), timeout);
-      const response = await fetch(url, {
-        method: 'GET',
-        signal: controller.signal,
-        redirect: 'follow',
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'
-        }
-      });
-      return response.status >= 200 && response.status < 400;
-    } catch {
-      if (attempt === retries) return false;
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-  }
-  return false;
-}
-
-async function checkTunnelHealth(accountId, tunnelId, headers) {
-  try {
-    const response = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}`,
-      { headers }
-    );
-    
-    const data = await response.json();
-    
-    if (!data.success) {
-      console.log(`Tunnel API response not successful for ${tunnelId}`);
-      return false;
-    }
-    
-    const tunnel = data.result;
-    console.log(`Tunnel ${tunnelId} status: ${tunnel.status}`);
-    
-    return tunnel.status === 'healthy';
-    
-  } catch (error) {
-    console.log(`Tunnel health check failed for tunnel ${tunnelId}: ${error.message}`);
     return false;
   }
-}
 
-async function addTunnelRule(accountId, tunnelId, domain, serviceUrl, headers) {
-  try {
-    // Get current tunnel configuration
-    const response = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-      { headers }
-    );
+  // ── Tunnel Health ────────────────────────────────────────────────────────────
 
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(`Failed to get tunnel config: ${data.errors?.[0]?.message || 'Unknown error'}`);
+  async isTunnelHealthy(tunnelId) {
+    try {
+      const res  = await this.apiFetch(
+        `https://api.cloudflare.com/client/v4/accounts/${this.account}/cfd_tunnel/${tunnelId}`
+      );
+      const data = await res.json();
+      return data.success && data.result.status === "healthy";
+    } catch {
+      return false;
     }
+  }
 
-    const config = data.result.config || { ingress: [] };
-    let ingress = config.ingress || [];
+  // ── Tunnel Config ────────────────────────────────────────────────────────────
 
-    // Remove existing rule for this domain if it exists
-    ingress = ingress.filter(rule => rule.hostname !== domain);
+  async addTunnelRule(tunnelId) {
+    const config = await this.getTunnelConfig(tunnelId);
+    let ingress  = config.ingress ?? [];
 
-    // Add new rule at the beginning
+    // Remove any existing rule for this domain, then prepend the new one
+    ingress = ingress.filter(r => r.hostname !== this.domain);
     ingress.unshift({
-      hostname: domain,
-      service: serviceUrl,
+      hostname:      this.domain,
+      service:       this.service,
       originRequest: {},
     });
 
-    // Ensure fallback rule exists
-    const hasFallback = ingress.some(rule => !rule.hostname && rule.service === 'http_status:404');
-    if (!hasFallback) {
-      ingress.push({ service: 'http_status:404' });
-    }
+    // Always ensure the mandatory catch-all fallback is last
+    ingress = ingress.filter(r => r.hostname || r.service !== "http_status:404");
+    ingress.push({ service: "http_status:404" });
 
-    // Update tunnel configuration
-    const updateResponse = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-      {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({ config: { ingress } }),
+    await this.updateTunnelConfig(tunnelId, { ingress });
+  }
+
+  async removeTunnelRule(tunnelId) {
+    const config = await this.getTunnelConfig(tunnelId);
+    let ingress  = (config.ingress ?? []).filter(r => r.hostname !== this.domain);
+
+    // Preserve the mandatory catch-all
+    ingress = ingress.filter(r => r.hostname || r.service !== "http_status:404");
+    ingress.push({ service: "http_status:404" });
+
+    await this.updateTunnelConfig(tunnelId, { ingress });
+  }
+
+  async getTunnelConfig(tunnelId) {
+    const res  = await this.apiFetch(
+      `https://api.cloudflare.com/client/v4/accounts/${this.account}/cfd_tunnel/${tunnelId}/configurations`
+    );
+    const data = await res.json();
+    if (!data.success) throw new Error(`Get tunnel config: ${data.errors?.[0]?.message ?? "unknown"}`);
+    return data.result.config ?? { ingress: [] };
+  }
+
+  async updateTunnelConfig(tunnelId, config) {
+    const res  = await this.apiFetch(
+      `https://api.cloudflare.com/client/v4/accounts/${this.account}/cfd_tunnel/${tunnelId}/configurations`,
+      { method: "PUT", body: JSON.stringify({ config }) }
+    );
+    const data = await res.json();
+    if (!data.success) throw new Error(`Update tunnel config: ${data.errors?.[0]?.message ?? "unknown"}`);
+  }
+
+  // ── DNS ──────────────────────────────────────────────────────────────────────
+
+  async getDnsRecord() {
+    const res  = await this.apiFetch(
+      `https://api.cloudflare.com/client/v4/zones/${this.zone}/dns_records?type=CNAME&name=${this.domain}`
+    );
+    const data = await res.json();
+    if (!data.success || data.result.length === 0) {
+      throw new Error(`No CNAME record found for ${this.domain}`);
+    }
+    return data.result[0];
+  }
+
+  async updateDnsRecord(recordId, cname) {
+    const res  = await this.apiFetch(
+      `https://api.cloudflare.com/client/v4/zones/${this.zone}/dns_records/${recordId}`,
+      { method: "PATCH", body: JSON.stringify({ content: cname }) }
+    );
+    const data = await res.json();
+    if (!data.success) throw new Error(`Update DNS: ${data.errors?.[0]?.message ?? "unknown"}`);
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────────
+
+  // Find a tunnel object by its CNAME value
+  tunnelByCname(cname) {
+    return this.tunnels.find(t => t.cname === cname) ?? null;
+  }
+
+  // Fetch with retry + rate-limit back-off
+  async apiFetch(url, options = {}) {
+    for (let attempt = 1; attempt <= API_MAX_RETRIES; attempt++) {
+      try {
+        const res = await fetch(url, { headers: this.headers, ...options });
+        if (res.status === 429 && attempt < API_MAX_RETRIES) {
+          await sleep(API_RETRY_DELAY * attempt);
+          continue;
+        }
+        return res;
+      } catch (err) {
+        if (attempt === API_MAX_RETRIES) throw err;
+        await sleep(API_RETRY_DELAY * attempt);
       }
-    );
-
-    const updateData = await updateResponse.json();
-    if (!updateData.success) {
-      throw new Error(`Failed to update tunnel: ${updateData.errors?.[0]?.message || 'Unknown error'}`);
     }
-
-    return true;
-  } catch (error) {
-    console.error(`Error adding tunnel rule: ${error.message}`);
-    throw error;
-  }
-}
-
-async function removeTunnelRule(accountId, tunnelId, domain, headers) {
-  try {
-    // Get current tunnel configuration
-    const response = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-      { headers }
-    );
-
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error(`Failed to get tunnel config: ${data.errors?.[0]?.message || 'Unknown error'}`);
-    }
-
-    const config = data.result.config || { ingress: [] };
-    let ingress = config.ingress || [];
-
-    // Remove rule for this domain
-    ingress = ingress.filter(rule => rule.hostname !== domain);
-
-    // Ensure fallback rule exists
-    const hasFallback = ingress.some(rule => !rule.hostname && rule.service === 'http_status:404');
-    if (!hasFallback) {
-      ingress.push({ service: 'http_status:404' });
-    }
-
-    // Update tunnel configuration
-    const updateResponse = await fetchWithRetry(
-      `https://api.cloudflare.com/client/v4/accounts/${accountId}/cfd_tunnel/${tunnelId}/configurations`,
-      {
-        method: 'PUT',
-        headers,
-        body: JSON.stringify({ config: { ingress } }),
-      }
-    );
-
-    const updateData = await updateResponse.json();
-    if (!updateData.success) {
-      throw new Error(`Failed to update tunnel: ${updateData.errors?.[0]?.message || 'Unknown error'}`);
-    }
-
-    return true;
-  } catch (error) {
-    console.error(`Error removing tunnel rule: ${error.message}`);
-    throw error;
-  }
-}
-
-async function getDnsRecord(zoneId, domain, headers) {
-  const response = await fetchWithRetry(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=CNAME&name=${domain}`,
-    { headers }
-  );
-
-  const data = await response.json();
-
-  if (!data.success || data.result.length === 0) {
-    throw new Error(`No CNAME record found for ${domain}`);
   }
 
-  return data.result[0];
-}
-
-async function updateDnsRecord(zoneId, recordId, newContent, headers) {
-  const response = await fetchWithRetry(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records/${recordId}`,
-    {
-      method: 'PATCH',
-      headers,
-      body: JSON.stringify({ content: newContent }),
-    }
-  );
-
-  const data = await response.json();
-
-  if (!data.success) {
-    throw new Error(`Failed to update DNS record: ${data.errors?.[0]?.message || 'Unknown error'}`);
-  }
-}
-
-async function sendTelegramNotification(botToken, chatId, message) {
-  try {
-    const response = await fetchWithRetry(
-      `https://api.telegram.org/bot${botToken}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'Markdown',
-        }),
-      }
-    );
-
-    const data = await response.json();
-    if (!data.ok) {
-      console.error(`[${new Date().toISOString()}] Telegram notification failed: ${data.description}`);
-    }
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Telegram notification error: ${error.message}`);
-  }
-}
-
-async function fetchWithRetry(url, options, maxRetries = 3) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  async notify(message) {
+    if (!this.telegram.token || !this.telegram.chatId) return;
     try {
-      const response = await fetch(url, options);
-      if (response.status === 429 && attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000;
-        console.log(`[${new Date().toISOString()}] Rate limit hit, retrying after ${delay}ms (attempt ${attempt}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-      return response;
-    } catch (error) {
-      if (attempt === maxRetries) {
-        throw error;
-      }
+      await fetch(
+        `https://api.telegram.org/bot${this.telegram.token}/sendMessage`,
+        {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id:    this.telegram.chatId,
+            text:       message,
+            parse_mode: "Markdown",
+          }),
+        }
+      );
+    } catch {
+      // Silent fail — notification errors should never block failover logic
     }
   }
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
