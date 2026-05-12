@@ -303,26 +303,27 @@ export default {
   // 3. Recovery check — if on standby, checks if primary is back
   async scheduled(event, env, ctx) {
     console.log("[Cron] Running periodic health check");
-
+  
+    // Config check runs on ALL instances — filterable attributes must be
+    // correct on both so Koyeb is ready when promoted during failover
     for (const instance of INSTANCES) {
-      // Force bypass cache so cron always does a real check
       const cacheKey = `https://worker-health-flag/${instance.origin}`;
       await caches.default.delete(cacheKey);
-
       ctx.waitUntil(checkAndPatch(instance.origin, instance.name, env, ctx));
-      ctx.waitUntil(checkAndRebuildIfEmpty(instance.origin, instance.name, env, ctx));
     }
-
-    // Recovery check: only relevant if currently on standby
-    const activeIndex = await getActiveIndex();
-
+  
+    // Rebuild check runs on ACTIVE instance only — standby's empty index
+    // is expected and will be filled by the nightly GitHub Actions clone
+    const activeIndex    = await getActiveIndex();
+    const activeInstance = INSTANCES[activeIndex];
+    ctx.waitUntil(checkAndRebuildIfEmpty(activeInstance.origin, activeInstance.name, env, ctx));
+  
+    // Recovery check
     if (activeIndex > 0) {
       const primaryUp = await isInstanceReachable(INSTANCES[0].origin);
-
       if (primaryUp) {
         console.log("[Cron] Primary recovered — switching back");
         await setActiveIndex(0, ctx);
-
         ctx.waitUntil(
           sendTelegram(
             env,
@@ -338,6 +339,7 @@ export default {
       console.log("[Cron] Primary is active — no recovery check needed");
     }
   },
+
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   async fetch(request, env, ctx) {
