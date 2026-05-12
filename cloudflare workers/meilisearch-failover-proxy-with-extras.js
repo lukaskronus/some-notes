@@ -244,12 +244,8 @@ async function checkAndRebuildIfEmpty(origin, instanceName, env, ctx) {
       console.log(`[IndexBuild] Could not get document count for ${instanceName} — skipping`);
       return;
     }
-    if (count === -1) {
-      console.log(`[IndexBuild] Index not found on ${instanceName} — skipping`);
-      return;
-    }
-    if (count === 0) {
-      console.log(`[IndexBuild] Index empty on ${instanceName} — triggering rebuild`);
+    if (count === -1 || count === 0) {
+      console.log(`[IndexBuild] Index ${count === -1 ? "not found" : "empty"} on ${instanceName} — triggering rebuild`);
       ctx.waitUntil(
         triggerIndexBuild(instanceName, env).catch(async (err) => {
           console.log(`[IndexBuild] Failed for ${instanceName}:`, err.message);
@@ -262,7 +258,8 @@ async function checkAndRebuildIfEmpty(origin, instanceName, env, ctx) {
           );
         })
       );
-    } else {
+    }
+    else {
       console.log(`[IndexBuild] ${instanceName} has ${count} documents — healthy`);
     }
   } catch (err) {
