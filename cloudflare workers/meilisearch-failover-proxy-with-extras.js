@@ -33,6 +33,9 @@ const REQUIRED_SETTINGS = {
   filterableAttributes: ["parent_path_hashes"],
 };
 
+const FAILOVER_ALERT_TTL = 600; // 10 minutes — suppress duplicate alerts
+const FAILOVER_ALERT_CACHE_KEY = "https://worker-meili-failover-alerted/state";
+
 // ─── Telegram ────────────────────────────────────────────────────────────────
 
 async function sendTelegram(env, message) {
@@ -66,15 +69,14 @@ async function getActiveIndex() {
 }
 
 async function setActiveIndex(index, ctx) {
-  const cache = caches.default;
-  ctx.waitUntil(
-    cache.put(
-      ACTIVE_INDEX_CACHE_KEY,
-      new Response(String(index), {
-        headers: { "Cache-Control": `max-age=${ACTIVE_INDEX_TTL}` },
-      })
-    )
-  );
+  const cache    = caches.default;
+  const response = new Response(String(index), {
+    headers: { "Cache-Control": `max-age=${ACTIVE_INDEX_TTL}` },
+  });
+
+  // Use direct await so cron context doesn't terminate before write completes.
+  // In fetch() context ctx.waitUntil would be fine, but await is safe in both.
+  await cache.put(ACTIVE_INDEX_CACHE_KEY, response);
 }
 
 // ─── Instance Reachability Check ─────────────────────────────────────────────
@@ -322,24 +324,28 @@ export default {
     if (activeIndex > 0) {
       const primaryUp = await isInstanceReachable(INSTANCES[0].origin);
       if (primaryUp) {
-        console.log("[Cron] Primary recovered — switching back");
-        await setActiveIndex(0, ctx);
-        ctx.waitUntil(
-          sendTelegram(
-            env,
-            `✅ *Primary Recovered*\n` +
-            `*${INSTANCES[0].name}* is back online\n` +
-            `Traffic switched back from *${INSTANCES[activeIndex].name}*`
-          )
-        );
-      } else {
+		  const primaryDocs = await getDocumentCount(INSTANCES[0].origin, env);
+		  if (primaryDocs === null || primaryDocs < 1) {
+		    console.log("[Cron] Primary is up but index not ready yet — staying on standby");
+		    return;
+		  }
+		  console.log("[Cron] Primary recovered and index ready — switching back");
+		  await setActiveIndex(0, ctx);
+		  ctx.waitUntil(
+		    sendTelegram(
+		      env,
+		      `✅ *Primary Recovered*\n` +
+		      `*${INSTANCES[0].name}* is back online with \`${primaryDocs}\` documents\n` +
+		      `Traffic switched back from *${INSTANCES[activeIndex].name}*`
+		    )
+		  );
+		} else {
         console.log(`[Cron] Still on standby (${INSTANCES[activeIndex].name}), primary still down`);
       }
     } else {
       console.log("[Cron] Primary is active — no recovery check needed");
     }
   },
-
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   async fetch(request, env, ctx) {
@@ -355,20 +361,18 @@ export default {
       const primaryUp   = await isInstanceReachable(INSTANCES[0].origin);
       const standbyUp   = await isInstanceReachable(INSTANCES[1].origin);
 
-      const status = {
-        active: {
-          name:      active.name,
-          origin:    active.origin,
-          index:     activeIndex,
-          documents: docCount ?? "unknown",
-        },
-        instances: INSTANCES.map((inst, i) => ({
-          name:    inst.name,
-          origin:  inst.origin,
-          healthy: i === 0 ? primaryUp : standbyUp,
-        })),
-        mode: activeIndex === 0 ? "normal" : "failover",
-      };
+	  const status = {
+	    active: {
+	      name:      active.name,
+	      index:     activeIndex,
+	      documents: docCount ?? "unknown",
+	    },
+	    instances: INSTANCES.map((inst, i) => ({
+	      name:    inst.name,
+	      healthy: i === 0 ? primaryUp : standbyUp,
+	    })),
+	    mode: activeIndex === 0 ? "normal" : "failover",
+	  };
 
       return new Response(JSON.stringify(status, null, 2), {
         status:  200,
@@ -403,19 +407,32 @@ export default {
 
         // Failover: we stepped away from the current active instance
         if (idx !== activeIndex) {
-          const previousInstance = INSTANCES[activeIndex];
-          await setActiveIndex(idx, ctx);
-
-          ctx.waitUntil(
-            sendTelegram(
-              env,
-              `🟡 *Meilisearch Failover Activated*\n` +
-              `*${previousInstance.name}* is down\n` +
-              `Now serving from: *${instance.name}*\n` +
-              `Failed with: \`${lastError}\``
-            )
-          );
-        }
+		  const previousInstance = INSTANCES[activeIndex];
+		  await setActiveIndex(idx, ctx);
+		
+		  // Only alert if we haven't already alerted recently
+		  const alreadyAlerted = await caches.default.match(FAILOVER_ALERT_CACHE_KEY);
+		  if (!alreadyAlerted) {
+		    ctx.waitUntil(
+		      caches.default.put(
+		        FAILOVER_ALERT_CACHE_KEY,
+		        new Response("alerted", {
+		          headers: { "Cache-Control": `max-age=${FAILOVER_ALERT_TTL}` },
+		        })
+		      )
+		    );
+		    ctx.waitUntil(
+		      sendTelegram(
+		        env,
+		        `🟡 *Meilisearch Failover Activated*\n` +
+		        `*${previousInstance.name}* is down\n` +
+		        `Now serving from: *${instance.name}*\n` +
+		        `Failed with: \`${lastError}\`\n` +
+		        `_Further alerts suppressed for 10 minutes_`
+		      )
+		    );
+		  }
+		}
 
         return response;
 
