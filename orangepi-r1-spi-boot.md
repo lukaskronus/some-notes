@@ -63,10 +63,11 @@ This patch enables the USB2 and USB3 host controller ports (EHCI/OHCI) on the ex
 ```diff
 --- a/arch/arm/dts/sun8i-h2-plus-orangepi-r1.dts
 +++ b/arch/arm/dts/sun8i-h2-plus-orangepi-r1.dts
-@@ -77,6 +77,17 @@
-        };
+@@ -98,3 +98,20 @@
+ &usbphy {
+        usb1_vbus-supply = <&reg_vcc_usb_eth>;
  };
-
++
 +&ehci2 {
 +       status = "okay";
 +};
@@ -75,10 +76,6 @@ This patch enables the USB2 and USB3 host controller ports (EHCI/OHCI) on the ex
 +       status = "okay";
 +};
 +
- &ohci1 {
-        status = "disabled";
- };
-
 +&ohci2 {
 +       status = "okay";
 +};
@@ -87,9 +84,6 @@ This patch enables the USB2 and USB3 host controller ports (EHCI/OHCI) on the ex
 +       status = "okay";
 +};
 +
- &mmc1 {
-        vmmc-supply = <&reg_vcc3v3>;
-        vqmmc-supply = <&reg_vcc3v3>;
 ```
 
 ### 4. Compile U-Boot
