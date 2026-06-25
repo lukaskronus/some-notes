@@ -1,32 +1,46 @@
 #!/bin/sh
+# Route all Vietnam destinations via WAN
+# OpenWrt 25.02 + pbr package
 
-TARGET_SET='pbr_wan_4_dst_ip_user'
-TARGET_IPSET='pbr_wan_4_dst_net_user'
 TARGET_TABLE='inet fw4'
-TARGET_URL="http://www.ipdeny.com/ipblocks/data/countries/vn.zone"
-TARGET_DL_FILE="/var/pbr_tmp_vn_ip_ranges"
-TARGET_NFT_FILE="/var/pbr_tmp_vn_ip_ranges.nft"
-[ -z "$nft" ] && nft="$(command -v nft)"
-_ret=1
+TARGET_INTERFACE='wan'
 
-if [ ! -s "$TARGET_DL_FILE" ]; then
-	uclient-fetch --no-check-certificate -qO- "$TARGET_URL" 2>/dev/null > "$TARGET_DL_FILE"
+IPV4_URL='https://www.ipdeny.com/ipblocks/data/countries/vn.zone'
+IPV6_URL='https://www.ipdeny.com/ipv6/ipaddresses/blocks/vn.zone'
+
+TMP_DIR='/var/pbr_tmp'
+IPV4_FILE="$TMP_DIR/vn_ipv4.zone"
+IPV6_FILE="$TMP_DIR/vn_ipv6.zone"
+
+_ret=0
+
+mkdir -p "$TMP_DIR"
+
+# Download latest lists
+uclient-fetch -qO "$IPV4_FILE" "$IPV4_URL" || _ret=1
+
+if [ "$(uci -q get pbr.config.ipv6_enabled)" = "1" ]; then
+    uclient-fetch -qO "$IPV6_FILE" "$IPV6_URL" || _ret=1
 fi
 
-if [ -s "$TARGET_DL_FILE" ]; then
-	if ipset -q list "$TARGET_IPSET" >/dev/null 2>&1; then
-		if awk -v ipset="$TARGET_IPSET" '{print "add " ipset " " $1}' "$TARGET_DL_FILE" | ipset restore -!; then
-			_ret=0
-		fi
-	elif [ -n "$nft" ] && [ -x "$nft" ] && "$nft" list set "$TARGET_TABLE" "$TARGET_SET" >/dev/null 2>&1; then
-		printf "add element %s %s { " "$TARGET_TABLE" "$TARGET_SET" > "$TARGET_NFT_FILE"
-		awk '{printf $1 ", "}' "$TARGET_DL_FILE" >> "$TARGET_NFT_FILE"
-		printf " } " >> "$TARGET_NFT_FILE"
-		if "$nft" -f "$TARGET_NFT_FILE"; then
-			rm -f "$TARGET_NFT_FILE"
-			_ret=0
-		fi
-	fi
+[ $_ret -eq 0 ] || return 1
+
+# IPv4
+if [ -s "$IPV4_FILE" ]; then
+    nftset="pbr_${TARGET_INTERFACE}_4_dst_ip_user"
+
+    nft add element "$TARGET_TABLE" "$nftset" \
+    "{ $(tr '\n' ',' < "$IPV4_FILE" | sed 's/,$//') }" \
+    || _ret=1
+fi
+
+# IPv6
+if [ "$(uci -q get pbr.config.ipv6_enabled)" = "1" ] && [ -s "$IPV6_FILE" ]; then
+    nftset="pbr_${TARGET_INTERFACE}_6_dst_ip_user"
+
+    nft add element "$TARGET_TABLE" "$nftset" \
+    "{ $(tr '\n' ',' < "$IPV6_FILE" | sed 's/,$//') }" \
+    || _ret=1
 fi
 
 return $_ret
