@@ -1,5 +1,5 @@
 -- hls_png_proxy.lua
--- Native Windows (and cross-platform) HLS PNG-header bypass for mpv.
+-- Native Windows / Linux HLS PNG-header bypass for mpv.
 -- Starts a single Go binary proxy and guarantees it is killed when mpv exits.
 -- No Python / Node / external runtime required.
 
@@ -8,7 +8,6 @@ local msg   = require 'mp.msg'
 
 local PORT   = 12082
 local inited = false
-local proxy_pid = nil   -- process handle / pid of the proxy
 
 -- URL-encode helper
 local function urlencode(str)
@@ -44,28 +43,59 @@ local function get_proxy_path()
     return utils.join_path(script_dir, name)
 end
 
--- Start the native proxy (only once)
+-- Portable short sleep (busy-wait, fine for < 500 ms)
+local function sleep(seconds)
+    local t0 = mp.get_time()
+    while mp.get_time() - t0 < seconds do end
+end
+
+-- Check whether the proxy is already listening on the port.
+-- Uses a quick HTTP request to the built-in /play endpoint.
+local function is_proxy_ready()
+    local res = mp.command_native({
+        name = "subprocess",
+        playback_only = false,
+        capture_stdout = true,
+        capture_stderr = true,
+        args = {
+            "curl", "-s", "--connect-timeout", "0.3", "--max-time", "0.5",
+            "http://127.0.0.1:" .. PORT .. "/play?url=test"
+        },
+    })
+    if res and res.status == 0 and res.stdout and res.stdout:find("OK") then
+        return true
+    end
+    return false
+end
+
+-- Start the native proxy (only when needed)
 local function start_proxy_server()
-    if inited then return end
+    -- Already running and responding?
+    if inited and is_proxy_ready() then
+        return true
+    end
 
     local proxy_bin = get_proxy_path()
     local platform = mp.get_property_native("platform")
 
-    -- On Windows, prefer the .exe; fall back to PATH only if missing
-    if platform == "windows" then
-        local f = io.open(proxy_bin, "rb")
-        if not f then
-            msg.error("Native proxy binary not found: " .. proxy_bin)
+    -- Check that the binary actually exists
+    local f = io.open(proxy_bin, "rb")
+    if not f then
+        msg.error("Native proxy binary not found: " .. proxy_bin)
+        if platform == "windows" then
             msg.error("Place hls_png_proxy.exe next to this Lua script.")
-            return
+        else
+            msg.error("Place the 'hls_png_proxy' binary next to this Lua script")
+            msg.error("and run: chmod +x " .. proxy_bin)
         end
-        f:close()
+        return false
     end
+    f:close()
 
     msg.info("Starting native HLS PNG Proxy (" .. proxy_bin .. ") ...")
 
     -- MUST be async. A blocking command_native would freeze the on_load hook
-    -- forever (the proxy never exits), so the m3u8 URL would never be rewritten.
+    -- forever (the proxy never exits).
     --
     -- Important: do NOT set detach = true.
     -- mpv guarantees a non-detached subprocess is terminated when the player
@@ -79,16 +109,25 @@ local function start_proxy_server()
         args = { proxy_bin, tostring(PORT) },
     })
 
-    inited = true
-    msg.info("Proxy started (will be killed automatically when mpv exits)")
+    -- Wait until the proxy is actually accepting connections (up to ~1.5 s)
+    for i = 1, 15 do
+        sleep(0.1)
+        if is_proxy_ready() then
+            inited = true
+            msg.info("Proxy is ready on port " .. PORT)
+            return true
+        end
+    end
+
+    msg.error("Proxy failed to become ready on port " .. PORT)
+    msg.error("Make sure the binary is executable and not blocked by a firewall.")
+    return false
 end
 
--- Explicit cleanup on shutdown (extra safety on Windows)
+-- Explicit cleanup on shutdown
 local function cleanup()
     if not inited then return end
     msg.info("mpv exiting – native proxy will be terminated by the player")
-    -- No need to kill manually: non-detached subprocess is reaped by mpv.
-    -- Leaving an explicit note for debugging.
     inited = false
 end
 
@@ -96,8 +135,6 @@ mp.register_event("shutdown", cleanup)
 
 -- Intercept m3u8 streams and redirect them through the local proxy
 mp.add_hook("on_load", 30, function()
-    start_proxy_server()
-
     local url = mp.get_property("stream-open-filename", "")
     if not url or url == "" then return end
 
@@ -107,6 +144,12 @@ mp.add_hook("on_load", 30, function()
         and not url:find("127%.0%.0%.1")
         and not url:find("localhost")
     then
+        -- Start (or ensure) the proxy is running ONLY when we actually need it
+        if not start_proxy_server() then
+            msg.error("Cannot start HLS PNG proxy – playing original URL (may fail)")
+            return
+        end
+
         local referer = get_referer()
         local ua      = mp.get_property("user-agent", "")
 
