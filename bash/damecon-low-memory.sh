@@ -1,23 +1,18 @@
 #!/bin/bash
 
-# Path to the Damecon executable (change if the name is different)
 DAMECON_BIN="./damecon-browser"
 
-# Memory limits
-MAX_HEAP=1024                    # V8 heap limit in MB
-MEMORY_MAX="2G"                  # Hard limit for the whole process tree
-MEMORY_HIGH="1.5G"               # Soft limit
+# Giới hạn heap tiến trình main (Electron 25 dùng V8 cũ, NODE_OPTIONS là cách duy nhất)
+export NODE_OPTIONS="--max-old-space-size=512"
 
-# Optional: lower GPU memory usage
-export ELECTRON_EXTRA_LAUNCH_ARGS="--max-old-space-size=${MAX_HEAP} \
---js-flags=--max-old-space-size=${MAX_HEAP} \
---renderer-process-limit=3 \
---disable-gpu-compositing \
---disable-features=Vulkan"
+# Chỉ giới hạn renderer/worker qua js-flags (Electron 25 hiểu cờ này)
+export ELECTRON_EXTRA_LAUNCH_ARGS="--js-flags=--max-old-space-size=512 \
+--renderer-process-limit=2 \
+--disable-gpu-compositing"
 
-# Launch with systemd memory protection (recommended)
+# Giới hạn cứng toàn bộ cây tiến trình
 exec systemd-run --user --scope \
-  -p MemoryMax=${MEMORY_MAX} \
-  -p MemoryHigh=${MEMORY_HIGH} \
-  -p MemorySwapMax=1G \
+  -p MemoryMax=2G \
+  -p MemoryHigh=1.5G \
+  -p MemorySwapMax=512M \
   "${DAMECON_BIN}" "$@"
