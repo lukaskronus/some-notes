@@ -1,5 +1,5 @@
 # Only install what's strictly needed
-# pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
+# sudo apt install -y python3-googleapi python3-google-auth python3-google-auth-httplib2 python3-google-auth-oauthlib python3-cryptography python3-cffi python3-cffi-backend
 
 import os
 import json
