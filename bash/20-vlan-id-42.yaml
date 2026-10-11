@@ -1,0 +1,41 @@
+# /etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    # Primary wired NIC – untagged DHCPv4 (lower priority)
+    end0:
+      dhcp4: true
+      dhcp6: false
+      accept-ra: false
+      link-local: []
+      optional: true
+      dhcp4-overrides:
+        route-metric: 200
+
+    # USB NIC – renamed to usb0, matched by MAC, DHCPv4
+    usb0:
+      match:
+        macaddress: [your-macaddress-interface]
+      set-name: usb0
+      dhcp4: true
+      dhcp6: false
+      accept-ra: false
+      link-local: []
+      optional: true
+      dhcp4-overrides:
+        route-metric: 300
+
+  vlans:
+    # VLAN 42 on top of end0 – highest priority (lowest metric)
+    end0.42:
+      id: 42
+      link: end0
+      dhcp4: true
+      dhcp6: false
+      accept-ra: false
+      link-local: []
+      optional: true
+      dhcp4-overrides:
+        route-metric: 100
