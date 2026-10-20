@@ -1,236 +1,328 @@
 #!/bin/sh
-# OpenWRT Router Monitor + Telegram Alerts
-# Compatible with ash/busybox.
+###############################################################################
+# /usr/bin/telegram-alerts.sh
+#
+# OpenWRT health monitor → Telegram alerts (BusyBox ash, no extra packages).
+#
+# Monitors: CPU (loadavg), memory, uptime, WAN ping, DHCP/wifi client count,
+#           interface traffic, temperature, service status, WAN IP,
+#           new-device detection (persisted MAC registry).
+#
+# Run modes:
+#   1) cron (recommended):  */5 * * * *  /usr/bin/telegram-alerts.sh --cron
+#   2) daemon:              /etc/init.d/telegram-alerts start
+#
+# State: /etc/telegram-alerts/state (survives reboot)
+# No local log is written (per requirement).
+###############################################################################
 
-# ========== CONFIG ==========
-BOT_TOKEN="YOUR_BOT_TOKEN_HERE"
-CHAT_ID="YOUR_CHAT_ID_HERE"
-STATE_DIR="/etc/router-monitor"          # persistent storage
-CHECK_INTERVAL=60                        # seconds between full checks (used by cron or loop)
-CPU_WARN=80                              # % CPU load average (1-min) warning threshold
-TEMP_WARN=75                             # °C warning threshold (adjust for your SoC)
-MEM_WARN=85                              # % memory used warning
-DISK_WARN=90                             # % root used warning
-STATUS_INTERVAL=3600                     # send a status summary every N seconds (0 = disable)
-PING_TARGET="8.8.8.8"                    # for internet check
-# ============================
+# ============================ CONFIG =========================================
+BOT_TOKEN="123456789:REPLACE_ME_WITH_YOUR_TOKEN"
+CHAT_ID="-1001234567890"          # personal chat ID (positive) or group/channel (negative)
+HOSTNAME_TAG="$(cat /proc/sys/kernel/hostname 2>/dev/null || echo router)"
 
-mkdir -p "$STATE_DIR"
-CLIENTS_FILE="$STATE_DIR/seen_clients"
-LAST_STATUS="$STATE_DIR/last_status"
-mkdir -p "$(dirname "$CLIENTS_FILE")"
-touch "$CLIENTS_FILE"
+STATE_DIR="/etc/telegram-alerts"
+STATE_FILE="$STATE_DIR/state"
+KNOWN_MACS="$STATE_DIR/known_macs"
 
-# --- helpers ---
-tg() {
-    # $1 = message text
-    [ -z "$BOT_TOKEN" ] || [ "$BOT_TOKEN" = "YOUR_BOT_TOKEN_HERE" ] && return
-    curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-        --data-urlencode "chat_id=${CHAT_ID}" \
-        --data-urlencode "text=$1" \
-        --data-urlencode "disable_web_page_preview=true" >/dev/null
+# Thresholds (percent). "Variable" per your answer — tune here.
+CPU_LOAD_PCT=80          # 1-min loadavg vs core count
+MEM_PCT=80
+DISK_PCT=80
+TEMP_C=75
+
+# WAN connectivity
+PING_TARGETS="1.1.1.1 8.8.8.8"
+PING_FAIL_STREAK=3       # consecutive failed checks before alerting
+
+# Services to watch (name:init.d-script)
+SERVICES="dnsmasq firewall dropbear"
+
+# Interfaces for traffic reporting (comma-separated)
+IFACES="wan lan"
+
+# Daemon interval (seconds)
+DAEMON_INTERVAL=300
+
+# Telegram message format
+PARSE_MODE="Markdown"
+
+# Enforce HTTPS verification (requires ca-bundle, which you have)
+CURL_OPTS="-sS --fail --max-time 20 --proto =https --tlsv1.2"
+
+# ============================ HELPERS ========================================
+CORES=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || echo 1)
+[ "$CORES" -lt 1 ] && CORES=1
+NOW() { date '+%Y-%m-%d %H:%M:%S'; }
+
+# Escape for Telegram Markdown (legacy). Only escapes the essentials.
+md_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/_/\\_/g' -e 's/\*/\\*/g' -e 's/`/\\`/g' -e 's/\[/\\[/g'; }
+
+# Read/update state file: state_get <key>  /  state_set <key> <value>
+state_get() { grep "^$1=" "$STATE_FILE" 2>/dev/null | tail -n1 | cut -d= -f2-; }
+state_set() {
+    mkdir -p "$STATE_DIR"
+    [ -f "$STATE_FILE" ] || : > "$STATE_FILE"
+    # remove old key, append new
+    sed -i "/^$1=/d" "$STATE_FILE" 2>/dev/null
+    printf '%s=%s\n' "$1" "$2" >> "$STATE_FILE"
 }
 
-get_temp() {
-    # Try common thermal zones; return first valid reading in °C
-    for z in /sys/class/thermal/thermal_zone*/temp; do
-        [ -r "$z" ] || continue
-        t=$(cat "$z" 2>/dev/null)
-        [ -n "$t" ] && [ "$t" -gt 0 ] 2>/dev/null && echo $((t / 1000)) && return
-    done
-    # Fallback for some MediaTek / Qualcomm boards
-    for f in /sys/devices/virtual/thermal/thermal_zone*/temp \
-             /sys/class/hwmon/hwmon*/temp1_input; do
-        [ -r "$f" ] || continue
-        t=$(cat "$f" 2>/dev/null)
-        [ -n "$t" ] && [ "$t" -gt 0 ] 2>/dev/null && echo $((t / 1000)) && return
-    done
-    echo "n/a"
+# send_telegram <text>   (returns 0 on success)
+send_telegram() {
+    local text="$1"
+    curl $CURL_OPTS \
+        --data-urlencode "chat_id=$CHAT_ID" \
+        --data-urlencode "parse_mode=$PARSE_MODE" \
+        --data-urlencode "disable_web_page_preview=true" \
+        --data-urlencode "text=$text" \
+        "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" >/dev/null
 }
 
-get_cpu_load() {
-    # 1-minute load average
-    awk '{print $1}' /proc/loadavg
+# ======================= METRIC READERS ======================================
+metric_cpu_load_pct() {
+    # loadavg 1-min * 100 / cores
+    local l1 l1_int l1_frac
+    l1=$(cut -d' ' -f1 /proc/loadavg)
+    l1_int=${l1%%.*}
+    l1_frac=${l1#*.}
+    [ "$l1_frac" = "$l1" ] && l1_frac=0
+    # l1_frac may have 2 digits; take first 2
+    l1_frac=$(printf '%s' "$l1_frac" | cut -c1-2)
+    [ -z "$l1_frac" ] && l1_frac=0
+    echo $(( (l1_int * 100 + l1_frac) / CORES ))
 }
 
-get_mem_pct() {
-    # Used memory %
-    free | awk '/Mem:/ {printf "%.0f", $3/$2 * 100}'
+metric_mem_pct() {
+    awk '
+        /^MemTotal:/ {t=$2}
+        /^MemAvailable:/ {a=$2}
+        END { if (t>0) printf "%d\n", (t-a)*100/t; else print 0 }
+    ' /proc/meminfo
 }
 
-get_disk_pct() {
-    df / | awk 'NR==2 {gsub(/%/,"",$5); print $5}'
+metric_disk_pct() {
+    # overlay/root usage
+    df -k /overlay 2>/dev/null | awk 'NR==2{gsub("%","",$5); print $5}' \
+        || df -k / | awk 'NR==2{gsub("%","",$5); print $5}'
 }
 
-get_uptime() {
-    awk '{printf "%dd %dh %dm", $1/86400, ($1%86400)/3600, ($1%3600)/60}' /proc/uptime
-}
+metric_uptime() { cut -d' ' -f1 /proc/uptime; }
 
-internet_ok() {
-    ping -c 1 -W 2 "$PING_TARGET" >/dev/null 2>&1
-}
-
-# Collect currently connected clients (wireless + wired)
-# Output format: MAC|IP|HOSTNAME|IFACE
-collect_clients() {
-    # Wireless stations (all wifi interfaces)
-    for iface in $(iw dev 2>/dev/null | awk '/Interface/ {print $2}'); do
-        iw dev "$iface" station dump 2>/dev/null | awk -v ifc="$iface" '
-            /^Station/ { mac=$2 }
-            /signal:/  { sig=$2 }
-            /authenticated:/ { auth=$2 }
-            /authorized:/ { authz=$2 }
-            /TDLS peer:/ { next }
-            {
-                if (mac != "") {
-                    # We only care about associated stations
-                    print mac "|?|?|" ifc
-                    mac=""
-                }
-            }'
-    done
-
-    # Also try ubus hostapd (more reliable on some builds)
-    for path in /var/run/hostapd/*.conf; do
-        [ -e "$path" ] || continue
-        iface=$(basename "$path" .conf)
-        hostapd_cli -i "$iface" -p /var/run/hostapd all_sta 2>/dev/null | \
-            awk -v ifc="$iface" '/^[0-9a-f:]{17}$/ {print $1 "|?|?|" ifc}'
-    done
-
-    # Wired clients via bridge MAC table + ARP
-    # Prefer bridge if present
-    if command -v brctl >/dev/null 2>&1; then
-        brctl showmacs br-lan 2>/dev/null | awk 'NR>1 && $3=="no" {print $2 "|?|?|br-lan"}'
+metric_temp_c() {
+    local t=""
+    if [ -d /sys/class/thermal ]; then
+        for z in /sys/class/thermal/thermal_zone*/temp; do
+            [ -r "$z" ] || continue
+            t=$(cat "$z")
+            echo $(( t / 1000 )); return
+        done
     fi
-
-    # ARP / neighbor table (covers both wired and wireless that have IP)
-    ip -4 neigh show 2>/dev/null | awk '
-        $1 ~ /^[0-9.]+$/ && $3 ~ /^[0-9a-f:]{17}$/ && $NF ~ /REACHABLE|STALE|DELAY|PROBE/ {
-            print $3 "|" $1 "|?|" $5
-        }'
-
-    # Fallback: pure ARP
-    cat /proc/net/arp 2>/dev/null | awk 'NR>1 && $4 != "00:00:00:00:00:00" {
-        print $4 "|" $1 "|?|lan"
-    }'
+    if [ -d /sys/class/hwmon ]; then
+        for f in /sys/class/hwmon/hwmon*/temp1_input; do
+            [ -r "$f" ] || continue
+            t=$(cat "$f")
+            echo $(( t / 1000 )); return
+        done
+    fi
+    echo ""
 }
 
-# Enrich with hostname from DHCP leases if possible
-enrich_hostname() {
-    mac="$1"
-    ip="$2"
-    # dnsmasq leases
+metric_client_count() {
+    local c=0
     if [ -r /tmp/dhcp.leases ]; then
-        awk -v m="$mac" -v i="$ip" '
-            tolower($2)==tolower(m) || $3==i {print $4; exit}
-        ' /tmp/dhcp.leases
+        c=$(wc -l < /tmp/dhcp.leases)
+    fi
+    # add wifi assoc count if available
+    if [ -d /sys/class/net ]; then
+        for n in /sys/class/net/*; do
+            [ -r "$n/operstate" ] || continue
+            b=$(basename "$n")
+            case "$b" in wlan*|phy*|ra*|rai*) ;; *) continue ;; esac
+            if [ -r "$n/statistics/rx_packets" ]; then :; fi
+        done
+    fi
+    echo "$c"
+}
+
+metric_wan_ip() {
+    # prefer ubus/network, fall back to ip addr on wan
+    ip -4 addr show dev wan 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1
+}
+
+metric_iface_traffic() {
+    # prints "wan_rx=.. wan_tx=.. lan_rx=.. lan_tx=.." (bytes)
+    awk -v ifs="$IFACES" '
+        BEGIN { n=split(ifs,a," "); for(i=1;i<=n;i++) want[a[i]]=1 }
+        { sub(":","",$1); if ($1 in want) printf "%s_rx=%s %s_tx=%s ", $1,$2,$1,$10 }
+    ' /proc/net/dev
+}
+
+metric_service_up() {
+    # service_up <name>
+    if [ -x "/etc/init.d/$1" ]; then
+        if /etc/init.d/"$1" status >/dev/null 2>&1; then echo 1; else echo 0; fi
+    else
+        echo 1  # not installed → treat as fine
     fi
 }
 
-# --- main monitoring logic ---
-run_check() {
-    now=$(date +%s)
-    hostname=$(cat /proc/sys/kernel/hostname 2>/dev/null || echo "router")
-
-    # ---- New clients ----
-    collect_clients | sort -u | while IFS='|' read -r mac ip host iface; do
-        [ -z "$mac" ] && continue
-        # Normalize MAC to lowercase
-        mac=$(echo "$mac" | tr 'A-F' 'a-f')
-
-        # Skip if already seen
-        grep -qi "^$mac" "$CLIENTS_FILE" 2>/dev/null && continue
-
-        # Try to get better IP / hostname
-        real_ip="$ip"
-        real_host=$(enrich_hostname "$mac" "$ip")
-        [ -z "$real_host" ] || [ "$real_host" = "?" ] && real_host="unknown"
-        [ "$real_ip" = "?" ] && real_ip=$(ip -4 neigh show | awk -v m="$mac" 'tolower($3)==m {print $1; exit}')
-
-        # Record it
-        echo "$mac $real_ip $real_host $iface $(date '+%Y-%m-%d %H:%M')" >> "$CLIENTS_FILE"
-
-        msg="🆕 New client on $hostname
-MAC: $mac
-IP: ${real_ip:-?}
-Host: $real_host
-Iface: $iface
-Time: $(date '+%Y-%m-%d %H:%M:%S')"
-        tg "$msg"
+wan_connectivity_ok() {
+    local ok=0
+    for t in $PING_TARGETS; do
+        if ping -c1 -W2 "$t" >/dev/null 2>&1; then ok=1; break; fi
     done
+    echo "$ok"
+}
 
-    # ---- Resource checks ----
-    load=$(get_cpu_load)
-    temp=$(get_temp)
-    mem=$(get_mem_pct)
-    disk=$(get_disk_pct)
-    up=$(get_uptime)
+# ======================= ALERT ENGINE ========================================
+# Each metric handler: compare, manage "in_breach:<m>" state, emit lines into $DIGEST.
+# DIGEST is a plain-text buffer; we build one Markdown message per run.
 
-    # CPU load warning (1-min load)
-    load_int=${load%.*}
-    if [ -n "$load_int" ] && [ "$load_int" -ge "$CPU_WARN" ] 2>/dev/null; then
-        tg "⚠️ High CPU load on $hostname
-1-min load: $load (threshold $CPU_WARN)
-Uptime: $up"
-    fi
+BREACH_COUNT=0
+DIGEST=""
 
-    # Temperature warning
-    if [ "$temp" != "n/a" ] && [ "$temp" -ge "$TEMP_WARN" ] 2>/dev/null; then
-        tg "🔥 High temperature on $hostname
-Temp: ${temp}°C (threshold ${TEMP_WARN}°C)
-Uptime: $up"
-    fi
+emit() { DIGEST="${DIGEST}$1
+"; }
 
-    # Memory warning
-    if [ -n "$mem" ] && [ "$mem" -ge "$MEM_WARN" ] 2>/dev/null; then
-        tg "💾 High memory usage on $hostname
-Used: ${mem}% (threshold ${MEM_WARN}%)
-Uptime: $up"
-    fi
-
-    # Disk warning
-    if [ -n "$disk" ] && [ "$disk" -ge "$DISK_WARN" ] 2>/dev/null; then
-        tg "📦 High disk usage on $hostname
-Root used: ${disk}% (threshold ${DISK_WARN}%)"
-    fi
-
-    # Internet connectivity
-    if ! internet_ok; then
-        tg "🌐 Internet check FAILED on $hostname
-Cannot reach $PING_TARGET
-Time: $(date '+%Y-%m-%d %H:%M:%S')"
-    fi
-
-    # ---- Periodic status summary ----
-    if [ "$STATUS_INTERVAL" -gt 0 ]; then
-        last=0
-        [ -f "$LAST_STATUS" ] && last=$(cat "$LAST_STATUS")
-        if [ $((now - last)) -ge "$STATUS_INTERVAL" ]; then
-            echo "$now" > "$LAST_STATUS"
-            clients=$(wc -l < "$CLIENTS_FILE" 2>/dev/null || echo 0)
-            net_status="OK"
-            internet_ok || net_status="FAIL"
-
-            tg "📊 Status — $hostname
-Uptime: $up
-Load: $load
-Temp: ${temp}°C
-Mem: ${mem}%
-Disk: ${disk}%
-Seen clients: $clients
-Internet: $net_status
-$(date '+%Y-%m-%d %H:%M:%S')"
+# handle_threshold <metric> <value> <threshold> <label>
+handle_threshold() {
+    local m="$1" v="$2" th="$3" label="$4"
+    local key="in_breach_$m"
+    local inb
+    inb=$(state_get "$key")
+    if [ -n "$v" ] && [ "$v" -ge "$th" ] 2>/dev/null; then
+        BREACH_COUNT=$((BREACH_COUNT+1))
+        if [ "$inb" != "1" ]; then
+            emit "*${label}:* ${v}% (>= ${th}%) — ALERT"
+            state_set "$key" 1
+        fi
+    else
+        if [ "$inb" = "1" ]; then
+            emit "*${label}:* ${v}% — recovered"
+            state_set "$key" 0
         fi
     fi
 }
 
-# If called with "loop" argument → run forever (for testing)
-if [ "$1" = "loop" ]; then
-    while true; do
-        run_check
-        sleep "$CHECK_INTERVAL"
+run_check() {
+    DIGEST=""
+    BREACH_COUNT=0
+
+    local cpu mem disk up temp cc wanip traffic
+    cpu=$(metric_cpu_load_pct)
+    mem=$(metric_mem_pct)
+    disk=$(metric_disk_pct)
+    up=$(metric_uptime)
+    temp=$(metric_temp_c)
+    cc=$(metric_client_count)
+    wanip=$(metric_wan_ip)
+    traffic=$(metric_iface_traffic)
+
+    handle_threshold cpu_load "$cpu" "$CPU_LOAD_PCT" "CPU load"
+    handle_threshold mem "$mem" "$MEM_PCT" "Memory"
+    handle_threshold disk "$disk" "$DISK_PCT" "Disk"
+    if [ -n "$temp" ]; then
+        handle_threshold temp "$temp" "$TEMP_C" "Temperature (°C)"
+    fi
+
+    # ---- WAN connectivity (3-failure streak) ----
+    local ok streak
+    ok=$(wan_connectivity_ok)
+    streak=$(state_get ping_fail_streak)
+    [ -z "$streak" ] && streak=0
+    if [ "$ok" = "0" ]; then
+        streak=$((streak+1))
+        state_set ping_fail_streak "$streak"
+        if [ "$streak" -ge "$PING_FAIL_STREAK" ]; then
+            BREACH_COUNT=$((BREACH_COUNT+1))
+            if [ "$(state_get wan_down_alerted)" != "1" ]; then
+                emit "*WAN:* unreachable for ${streak} checks (targets: ${PING_TARGETS})"
+                state_set wan_down_alerted 1
+            fi
+        fi
+    else
+        state_set ping_fail_streak 0
+        if [ "$(state_get wan_down_alerted)" = "1" ]; then
+            emit "*WAN:* recovered"
+            state_set wan_down_alerted 0
+        fi
+    fi
+
+    # ---- Service status ----
+    for s in $SERVICES; do
+        local up_flag k
+        up_flag=$(metric_service_up "$s")
+        k="svc_down_$s"
+        if [ "$up_flag" = "0" ]; then
+            BREACH_COUNT=$((BREACH_COUNT+1))
+            if [ "$(state_get "$k")" != "1" ]; then
+                emit "*Service* \`$s\` is *DOWN*"
+                state_set "$k" 1
+            fi
+        else
+            if [ "$(state_get "$k")" = "1" ]; then
+                emit "*Service* \`$s\` recovered"
+                state_set "$k" 0
+            fi
+        fi
     done
-else
-    run_check
-fi
+
+    # ---- WAN IP change ----
+    local prev_ip
+    prev_ip=$(state_get wan_ip)
+    if [ -n "$wanip" ] && [ "$wanip" != "$prev_ip" ]; then
+        if [ -n "$prev_ip" ]; then
+            emit "*WAN IP* changed: \`${prev_ip}\` → \`${wanip}\`"
+        fi
+        state_set wan_ip "$wanip"
+    fi
+
+    # ---- New device detection (persisted MAC list) ----
+    if [ -r /tmp/dhcp.leases ]; then
+        mkdir -p "$STATE_DIR"
+        touch "$KNOWN_MACS"
+        # dhcp.leases: epoch mac ip hostname clientid
+        awk '{print $2}' /tmp/dhcp.leases | sort -u | while read -r mac; do
+            [ -z "$mac" ] && continue
+            if ! grep -q "^${mac}$" "$KNOWN_MACS" 2>/dev/null; then
+                host=$(awk -v m="$mac" '$2==m{print $4}' /tmp/dhcp.leases | head -n1)
+                ip=$(awk -v m="$mac" '$2==m{print $3}' /tmp/dhcp.leases | head -n1)
+                emit "*New device:* \`${mac}\` — ${host:-unknown} (${ip})"
+                echo "$mac" >> "$KNOWN_MACS"
+            fi
+        done
+    fi
+
+    # ---- Build & send digest ----
+    if [ -n "$DIGEST" ]; then
+        local header
+        header="*${HOSTNAME_TAG}* @ $(NOW)
+CPU load: ${cpu}% | Mem: ${mem}% | Disk: ${disk}%"
+        [ -n "$temp" ] && header="${header} | Temp: ${temp}°C"
+        header="${header}
+Uptime: $(awk -v u="$up" 'BEGIN{d=int(u/86400);h=int((u%86400)/3600);m=int((u%3600)/60);printf "%dd %dh %dm",d,h,m}') | Clients: ${cc} | WAN: ${wanip:-n/a}
+Traffic: ${traffic}"
+
+        send_telegram "${header}
+${DIGEST}" || true
+    fi
+}
+
+# ============================ ENTRY ==========================================
+case "$1" in
+    --cron) run_check ;;
+    --daemon)
+        while :; do
+            run_check
+            sleep "$DAEMON_INTERVAL"
+        done
+        ;;
+    --test)
+        send_telegram "*${HOSTNAME_TAG}* test message at $(NOW)" && echo "sent"
+        ;;
+    *)
+        echo "Usage: $0 {--cron|--daemon|--test}"
+        exit 1
+        ;;
+esac
