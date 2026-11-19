@@ -1,0 +1,17 @@
+services:
+  nginx-static:
+    image: nginx:alpine
+    container_name: nginx-static-armv7
+    restart: unless-stopped
+    mem_limit: 64m
+    memswap_limit: 128m
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./sites:/srv/sites:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
