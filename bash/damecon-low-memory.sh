@@ -1,18 +1,20 @@
 #!/bin/bash
 
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
+
 DAMECON_BIN="./damecon-browser"
 
-# Giới hạn heap tiến trình main (Electron 25 dùng V8 cũ, NODE_OPTIONS là cách duy nhất)
-export NODE_OPTIONS="--max-old-space-size=512"
+# More V8 heap for heavy tabs (was 512M) -> less GC-thrash
+export NODE_OPTIONS="--max-old-space-size=1024"
 
-# Chỉ giới hạn renderer/worker qua js-flags (Electron 25 hiểu cờ này)
-export ELECTRON_EXTRA_LAUNCH_ARGS="--js-flags=--max-old-space-size=512 \
---renderer-process-limit=2 \
---disable-gpu-compositing"
+# Let Vega composite (was --disable-gpu-compositing); isolate heavy tab a bit (was 2)
+ELECTRON_CHROMIUM_FLAGS="--js-flags=--max-old-space-size=1024 --renderer-process-limit=4 --disable-gpu-compositing"
+export ELECTRON_EXTRA_LAUNCH_ARGS="${ELECTRON_CHROMIUM_FLAGS}"
 
-# Giới hạn cứng toàn bộ cây tiến trình
+# Headroom without eating whole system: throttle high, hard cap below total RAM, allow zram swap
 exec systemd-run --user --scope \
-  -p MemoryMax=2G \
-  -p MemoryHigh=1.5G \
-  -p MemorySwapMax=512M \
-  "${DAMECON_BIN}" "$@"
+  -p MemoryHigh=2600M \
+  -p MemoryMax=3200M \
+  -p MemorySwapMax=2G \
+  "${DAMECON_BIN}" ${ELECTRON_CHROMIUM_FLAGS} "$@"
